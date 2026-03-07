@@ -1,0 +1,140 @@
+namespace
+{
+	using DXGIGetDebugInterface1fn = HRESULT(WINAPI*)(UINT flags, REFIID riid, void** ppv);
+
+	static void ODSF(const wchar_t* fmt, ...)
+	{
+		wchar_t buf[1024];
+		va_list args;
+		va_start(args, fmt);
+		StringCchVPrintfW(buf, _countof(buf), fmt, args);
+		va_end(args);
+		OutputDebugStringW(buf);
+	}
+
+	static void ODS_LastError(const wchar_t* where)
+	{
+		DWORD e = GetLastError();
+		wchar_t msg[512] = L"";
+		FormatMessageW(FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS,
+			nullptr, e, 0, msg, _countof(msg), nullptr);
+		ODSF(L"%s failed. GetLastError=%lu (0x%08lX) %s\n", where, e, e, msg);
+	}
+
+	static void ODS_HR(const wchar_t* where, HRESULT hr)
+	{
+		ODSF(L"%s failed. HRESULT=0x%08X\n", where, (unsigned)hr);
+	}
+
+	static void LogLoadedPath(HMODULE h, const wchar_t* label)
+	{
+		wchar_t path[MAX_PATH] = L"";
+		DWORD n = GetModuleFileNameW(h, path, _countof(path));
+		if (n > 0) ODSF(L"%s: %s\n", label, path);
+		else ODS_LastError(L"GetModuleFileNameW");
+	}
+
+	HRESULT GetDXGIDebugInterface_Debug(REFIID riid, void** ppv)
+	{
+		if (!ppv) return E_POINTER;
+		*ppv = nullptr;
+
+#if defined(_WIN64)
+		ODSF(L"[DXGI] Build is x64 (_WIN64 defined)\n");
+#else
+		ODSF(L"[DXGI] Build is x86 (_WIN64 NOT defined)\n");
+#endif
+
+		wchar_t sysDir[MAX_PATH] = L"";
+		wchar_t winDir[MAX_PATH] = L"";
+		GetSystemDirectoryW(sysDir, _countof(sysDir));     // x64 proc -> System32, x86 proc -> SysWOW64
+		GetWindowsDirectoryW(winDir, _countof(winDir));
+		ODSF(L"[DXGI] GetSystemDirectoryW = %s\n", sysDir);
+		ODSF(L"[DXGI] GetWindowsDirectoryW = %s\n", winDir);
+
+		// 1) Try normal loader resolution first
+		HMODULE h = LoadLibraryW(L"dxgidebug.dll");
+		if (h)
+		{
+			LogLoadedPath(h, L"[DXGI] Loaded dxgidebug.dll by name");
+		}
+		else
+		{
+			ODS_LastError(L"[DXGI] LoadLibraryW(dxgidebug.dll)");
+
+			// 2) Try explicit paths to diagnose bitness / missing install
+			wchar_t pathSystem32[MAX_PATH] = L"";
+			wchar_t pathSysWOW64[MAX_PATH] = L"";
+			StringCchPrintfW(pathSystem32, _countof(pathSystem32), L"%s\\System32\\dxgidebug.dll", winDir);
+			StringCchPrintfW(pathSysWOW64, _countof(pathSysWOW64), L"%s\\SysWOW64\\dxgidebug.dll", winDir);
+
+			ODSF(L"[DXGI] Trying explicit: %s\n", pathSystem32);
+			h = LoadLibraryW(pathSystem32);
+			if (h) LogLoadedPath(h, L"[DXGI] Loaded explicit System32");
+			else ODS_LastError(L"[DXGI] LoadLibraryW(System32\\dxgidebug.dll)");
+
+			if (!h)
+			{
+				ODSF(L"[DXGI] Trying explicit: %s\n", pathSysWOW64);
+				h = LoadLibraryW(pathSysWOW64);
+				if (h) LogLoadedPath(h, L"[DXGI] Loaded explicit SysWOW64");
+				else ODS_LastError(L"[DXGI] LoadLibraryW(SysWOW64\\dxgidebug.dll)");
+			}
+
+			if (!h)
+			{
+				ODSF(L"[DXGI] dxgidebug.dll could not be loaded from any tested location.\n");
+				return HRESULT_FROM_WIN32(GetLastError());
+			}
+		}
+
+		// 3) Find export
+		auto fn = reinterpret_cast<DXGIGetDebugInterface1fn>(
+			GetProcAddress(h, "DXGIGetDebugInterface1"));
+
+		if (!fn)
+		{
+			ODS_LastError(L"[DXGI] GetProcAddress(DXGIGetDebugInterface1)");
+
+			// Fallback export name (rare, but good for diagnosis)
+			auto fn0 = reinterpret_cast<DXGIGetDebugInterface1fn>(
+				GetProcAddress(h, "DXGIGetDebugInterface"));
+
+			if (!fn0)
+			{
+				ODS_LastError(L"[DXGI] GetProcAddress(DXGIGetDebugInterface)");
+				FreeLibrary(h);
+				return HRESULT_FROM_WIN32(GetLastError());
+			}
+
+			ODSF(L"[DXGI] Using fallback export DXGIGetDebugInterface\n");
+			HRESULT hr0 = fn0(0, riid, ppv);
+			if (FAILED(hr0)) ODS_HR(L"[DXGI] DXGIGetDebugInterface", hr0);
+			FreeLibrary(h);
+			return hr0;
+		}
+
+		// 4) Call
+		HRESULT hr = fn(0, riid, ppv);
+		if (FAILED(hr))
+		{
+			ODS_HR(L"[DXGI] DXGIGetDebugInterface1", hr);
+
+			if (hr == E_NOINTERFACE)
+				ODSF(L"[DXGI] Hint: try requesting IDXGIDebug (not IDXGIDebug1).\n");
+
+			// This constant exists in dxgi headers on modern SDKs
+#ifdef DXGI_ERROR_SDK_COMPONENT_MISSING
+			if (hr == DXGI_ERROR_SDK_COMPONENT_MISSING)
+				ODSF(L"[DXGI] Hint: SDK component missing (Graphics Tools absent for this environment/bitness).\n");
+#endif
+		}
+		else
+		{
+			ODSF(L"[DXGI] DXGIGetDebugInterface1 succeeded.\n");
+		}
+
+		FreeLibrary(h);
+		return hr;
+	}
+}
