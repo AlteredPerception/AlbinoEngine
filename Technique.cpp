@@ -1,7 +1,6 @@
 #include "Technique.h"
 #include "Pass.h"
 #include "Mesh.h"
-#include "Effect.h"
 
 namespace AlbinoEngine
 {

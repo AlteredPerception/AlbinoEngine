@@ -1,14 +1,17 @@
 #pragma once
 
 #include "Mesh.h"
+#include "EffectManager.h"
+#include "EffectContext.h"
+
 #include <unordered_map>
+#include <memory>
 #include <string>
+
 
 namespace AlbinoEngine
 {
-	class EffectManager;
-	struct EffectContext;
-
+	
 	using MeshPtr = std::shared_ptr<Mesh>;
 	using UnorderedMeshMap = std::unordered_map<std::wstring, MeshPtr>;
 

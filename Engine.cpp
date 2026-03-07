@@ -150,7 +150,7 @@ namespace AlbinoEngine
 
 			// 3 Unbind SRV used by fullscreen pass to avoid next-frame RTV/SRV
 			ID3D11ShaderResourceView* nullSRV[1] = { nullptr };
-			m_MainRenderer->getContext()->PSGetShaderResources(0, 1, nullSRV);
+			m_MainRenderer->getContext()->PSSetShaderResources(0, 1, nullSRV);
 			this->m_MainRenderer->present();
 		}
 

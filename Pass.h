@@ -8,20 +8,15 @@
 
 #include "VertexShader.h"
 #include "PixelShader.h"
-#include "Effect.h"
+//#include "Effect.h"
+#include "EffectContext.h"
 //#include "ConstantBuffer.h"
 
 namespace AlbinoEngine
 {
 	class Mesh;
-	class Camera;
+	//class Camera;
 
-	struct EffectContext
-	{
-		ID3D11Device* device = nullptr;
-		ID3D11DeviceContext* context = nullptr;
-		Camera* camera = nullptr;
-	};
 
 	struct alignas(16) CB_WorldViewProj
 	{

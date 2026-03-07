@@ -1,9 +1,9 @@
 #include "MeshManager.h"
 #include "CubeMesh.h"
 #include "PlaneMesh.h"
-#include "screenQuadMesh.h"
-#include "EffectManager.h"
-#include "Effect.h"
+#include "ScreenQuadMesh.h"
+//#include "EffectManager.h"
+//#include "Effect.h"
 
 namespace AlbinoEngine
 {
@@ -63,10 +63,12 @@ namespace AlbinoEngine
 		// IMPORTANT: fx.camera must be valid here. Camera provided by the scene.
 		for (auto& [name, entry] : m_Meshes)
 		{
-			if (!entry.mesh) return;
+			if (!entry.mesh) 
+				continue;
 
 			Effect* e = effects.getEffect(entry.effectName);
-			if (!e) continue;
+			if (!e) 
+				continue;
 
 			if (!entry.techniqueName.empty())
 				e->setActiveTechnique(entry.techniqueName);

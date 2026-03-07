@@ -3,16 +3,23 @@
 #include <memory>
 #include <string>
 
+#include "Technique.h"
+#include "EffectContext.h"
+
 namespace AlbinoEngine
 {
 	class Mesh;
-	class Technique;
-	struct EffectContext;
 	class Effect
 	{
 	public:
 		explicit Effect(std::string name = "Effect") : m_name(std::move(name)) {}
 		
+
+		Effect(const Effect&) = delete;
+		Effect& operator=(const Effect&) = delete;
+		Effect(Effect&&) noexcept = default;
+		Effect& operator=(Effect&&) noexcept = default;
+
 		Technique& createTechnique(const std::string& techName);
 
 		Technique* getTechnique(const std::string& techName);

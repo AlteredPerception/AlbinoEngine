@@ -2,17 +2,22 @@
 #include <memory>
 #include <vector>
 #include <string>
-
+#include "EffectContext.h"
+#include "Pass.h"
 namespace AlbinoEngine
 {
-	class Pass;
 	class Mesh;
-	struct EffectContext;
 
 	class Technique
 	{
 	public:
 		explicit Technique(std::string name = "Technique") : m_name(std::move(name)) {}
+
+
+		Technique(const Technique&) = delete;
+		Technique& operator=(const Technique&) = delete;
+		Technique(Technique&&) noexcept = default;
+		Technique& operator=(Technique&&) noexcept = default;
 
 		Pass& addPass(std::unique_ptr<Pass> pass);
 

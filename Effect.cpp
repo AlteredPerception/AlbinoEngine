@@ -1,5 +1,5 @@
 #include "Effect.h"
-#include "Technique.h"
+#include "Mesh.h"
 
 namespace AlbinoEngine
 {
