@@ -9,7 +9,7 @@
 namespace AlbinoEngine
 {
 	class IScene;
-
+	class ScreenQuadMesh;
 	class Engine
 	{
 	public:
@@ -60,6 +60,8 @@ namespace AlbinoEngine
 		// Screen quad variables.
 		std::shared_ptr<VertexShader> m_screenVS;
 		std::shared_ptr<PixelShader> m_screenPS;
+
+		Microsoft::WRL::ComPtr<ID3D11DepthStencilState> m_screenDepthDisabled;
 
 	};
 }

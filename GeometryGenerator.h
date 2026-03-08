@@ -209,9 +209,10 @@ namespace AlbinoEngine
 			MeshData quad;
 
 			quad.vertices = {
+				
+				positionUV(-1.0f,-1.0f, 0.0f, 0.0f, 1.0f),
 				positionUV(-1.0f, 1.0f, 0.0f, 0.0f, 0.0f),
 				positionUV( 1.0f, 1.0f, 0.0f, 1.0f, 0.0f),
-				positionUV(-1.0f,-1.0f, 0.0f, 0.0f, 1.0f),
 				positionUV( 1.0f,-1.0f, 0.0f, 1.0f, 1.0f)
 			};
 
@@ -220,7 +221,7 @@ namespace AlbinoEngine
 				2, 1, 3
 			};
 
-			quad.stride = sizeof(quad.vertices[0]);
+			quad.stride = sizeof(Vertex);
 			quad.offset = 0;
 
 			return quad;

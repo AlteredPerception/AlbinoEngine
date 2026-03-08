@@ -1,12 +1,13 @@
 #pragma once
 
+
+
 #include <memory>
 #include "EffectContext.h"
 
 namespace AlbinoEngine
 {
     class Engine;
-    struct EffectContext;
     // Implement this in the *game* project.
     // Engine owns one active scene and calls initialize/update/render.
     class IScene

@@ -1,7 +1,7 @@
 #include "Engine.h"
 #include "Scene.h"
 #include "EffectManager.h"
-
+#include "ScreenQuadMesh.h"
 namespace AlbinoEngine
 {
 	Engine::Engine()
@@ -85,29 +85,48 @@ namespace AlbinoEngine
 
 		// create the screen quad effect.
 		auto screenEff = this->getEffectsManager().createEffect("ScreenQuad").get();
-		auto& screenTech = screenEff->createTechnique("screen quad");
-		screenEff->setActiveTechnique(screenTech.name());
-
+		auto& screenTech = screenEff->createTechnique("screen_quad");
+		screenEff->setActiveTechnique("screen_quad");
+		MessageBoxA(NULL, "THIS IS A TEST!", "TEST!", MB_OK);
 		D3D11_RASTERIZER_DESC screenDesc = {};
 		screenDesc.FillMode = D3D11_FILL_SOLID;
 		screenDesc.CullMode = D3D11_CULL_NONE;
+		screenDesc.DepthClipEnable = TRUE;
 		this->device()->CreateRasterizerState(&screenDesc, m_screenRaster.ReleaseAndGetAddressOf());
+
+		// Depth-disabled state for fullscreen pass
+		{
+			D3D11_DEPTH_STENCIL_DESC ds = {};
+			ds.DepthEnable = FALSE;
+			ds.DepthWriteMask = D3D11_DEPTH_WRITE_MASK_ZERO;
+			ds.DepthFunc = D3D11_COMPARISON_ALWAYS;
+			ds.StencilEnable = FALSE;
+			this->device()->CreateDepthStencilState(&ds, m_screenDepthDisabled.ReleaseAndGetAddressOf());
+		}
+	
 		// Create Pass
 		{
 			auto fullscreenPass = std::make_unique<Pass>(m_screenVS, m_screenPS);
 			fullscreenPass->name = "Fullscreen";
 			fullscreenPass->buildInputLayout(this->device());
 			fullscreenPass->setRasterizerState(m_screenRaster.Get());
-			fullscreenPass->setDepthStencialState(m_MainRenderer->getDepthBuffer()->getDepthStencilState());
+			fullscreenPass->setDepthStencialState(m_screenDepthDisabled.Get());
 			fullscreenPass->setUsePerObjectCB(false);
-			fullscreenPass->setTexture(0, this->m_renderTargetManager->get(0)->getShaderResourceView());
-			fullscreenPass->setSampler(0, this->m_renderTargetManager->get(0)->getSampler()->getSamplerState());
+			auto* rt = this->m_renderTargetManager->get(0);
+			if (rt)
+			{
+				fullscreenPass->setTexture(0, rt->getShaderResourceView());
+				fullscreenPass->setSampler(0, rt->getSampler()->getSamplerState());
+			}
 			screenTech.addPass(std::move(fullscreenPass));
 		}
 		
 		Mesh* screenQuad = this->getMeshManager().createMesh(L"mainQuad", L"screenQuadMesh");
-
-		this->getMeshManager().setMeshEffect(L"mainQuad", "ScreenQuad", "screen quad");
+		if (!screenQuad)
+		{
+			MessageBoxA(NULL, "Screen Quad is NULL", "ERROR", MB_OK);
+		}
+		this->getMeshManager().setMeshEffect(L"mainQuad", "ScreenQuad", "screen_quad");
 
 	}
 	int Engine::run()

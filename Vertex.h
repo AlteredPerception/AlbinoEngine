@@ -82,7 +82,7 @@ namespace AlbinoEngine
 	{
 		if (_stricmp(semantic, "POSITION") == 0 && semanticIndex == 0)
 		{
-			out = { DXGI_FORMAT_R32G32B32A32_FLOAT, (UINT)offsetof(Vertex, position) };
+			out = { DXGI_FORMAT_R32G32B32_FLOAT, (UINT)offsetof(Vertex, position) };
 			return true;
 		}
 		if (_stricmp(semantic, "NORMAL") == 0 && semanticIndex == 0)
