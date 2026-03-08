@@ -11,12 +11,8 @@ namespace AlbinoEngine
 		DirectX::XMFLOAT4 tangent{};  // TANGENT (w = handedness)
 		DirectX::XMFLOAT2 uv{};       // TEXCOORD0
 		DirectX::XMFLOAT4 color{};    // COLOR
-	};
 
-	// Convenience helpers. These keep Vertex a simple POD-like type while
-	// making geometry generation concise.
-
-	static Vertex positionUV(
+static Vertex positionUV(
 		float xPos, float yPos, float zPos,
 		float u, float v)
 	{
@@ -72,6 +68,12 @@ namespace AlbinoEngine
 		return out;
 	}
 
+	};
+
+	// Convenience helpers. These keep Vertex a simple POD-like type while
+	// making geometry generation concise.
+
+	
 	struct VertexElementInfo
 	{
 		DXGI_FORMAT format;	// Element format;

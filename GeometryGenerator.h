@@ -39,10 +39,10 @@ namespace AlbinoEngine
 
 			// CCW winding when viewed from +Y.
 			planeData.vertices = {
-				positionNormalUV(-halfWidth, 0.0f, -halfDepth, 0.0f, 1.0f, 0.0f, 0.0f, tileV),
-				positionNormalUV(-halfWidth, 0.0f,  halfDepth, 0.0f, 1.0f, 0.0f, 0.0f, 0.0f),
-				positionNormalUV( halfWidth, 0.0f,  halfDepth, 0.0f, 1.0f, 0.0f, tileU, 0.0f),
-				positionNormalUV( halfWidth, 0.0f, -halfDepth, 0.0f, 1.0f, 0.0f, tileU, tileV),
+				Vertex::positionNormalUV(-halfWidth, 0.0f, -halfDepth, 0.0f, 1.0f, 0.0f, 0.0f, tileV),
+				Vertex::positionNormalUV(-halfWidth, 0.0f,  halfDepth, 0.0f, 1.0f, 0.0f, 0.0f, 0.0f),
+				Vertex::positionNormalUV(halfWidth, 0.0f,  halfDepth, 0.0f, 1.0f, 0.0f, tileU, 0.0f),
+				Vertex::positionNormalUV(halfWidth, 0.0f, -halfDepth, 0.0f, 1.0f, 0.0f, tileU, tileV),
 			};
 
 			planeData.indices = {
@@ -64,40 +64,40 @@ namespace AlbinoEngine
 
 			data.vertices = {
 				// Front (+Z)
-				positionNormalUV(-h, -h,  h, 0, 0, 1, 0, 1),
-				positionNormalUV(-h,  h,  h, 0, 0, 1, 0, 0),
-				positionNormalUV( h,  h,  h, 0, 0, 1, 1, 0),
-				positionNormalUV( h, -h,  h, 0, 0, 1, 1, 1),
+				Vertex::positionNormalUV(-h, -h,  h, 0, 0, 1, 0, 1),
+				Vertex::positionNormalUV(-h,  h,  h, 0, 0, 1, 0, 0),
+				Vertex::positionNormalUV( h,  h,  h, 0, 0, 1, 1, 0),
+				Vertex::positionNormalUV( h, -h,  h, 0, 0, 1, 1, 1),
 
 				// Back (-Z)
-				positionNormalUV( h, -h, -h, 0, 0, -1, 0, 1),
-				positionNormalUV( h,  h, -h, 0, 0, -1, 0, 0),
-				positionNormalUV(-h,  h, -h, 0, 0, -1, 1, 0),
-				positionNormalUV(-h, -h, -h, 0, 0, -1, 1, 1),
+				Vertex::positionNormalUV( h, -h, -h, 0, 0, -1, 0, 1),
+				Vertex::positionNormalUV( h,  h, -h, 0, 0, -1, 0, 0),
+				Vertex::positionNormalUV(-h,  h, -h, 0, 0, -1, 1, 0),
+				Vertex::positionNormalUV(-h, -h, -h, 0, 0, -1, 1, 1),
 
 				// Left (-X)
-				positionNormalUV(-h, -h, -h, -1, 0, 0, 0, 1),
-				positionNormalUV(-h,  h, -h, -1, 0, 0, 0, 0),
-				positionNormalUV(-h,  h,  h, -1, 0, 0, 1, 0),
-				positionNormalUV(-h, -h,  h, -1, 0, 0, 1, 1),
+				Vertex::positionNormalUV(-h, -h, -h, -1, 0, 0, 0, 1),
+				Vertex::positionNormalUV(-h,  h, -h, -1, 0, 0, 0, 0),
+				Vertex::positionNormalUV(-h,  h,  h, -1, 0, 0, 1, 0),
+				Vertex::positionNormalUV(-h, -h,  h, -1, 0, 0, 1, 1),
 
 				// Right (+X)
-				positionNormalUV( h, -h,  h, 1, 0, 0, 0, 1),
-				positionNormalUV( h,  h,  h, 1, 0, 0, 0, 0),
-				positionNormalUV( h,  h, -h, 1, 0, 0, 1, 0),
-				positionNormalUV( h, -h, -h, 1, 0, 0, 1, 1),
+				Vertex::positionNormalUV( h, -h,  h, 1, 0, 0, 0, 1),
+				Vertex::positionNormalUV( h,  h,  h, 1, 0, 0, 0, 0),
+				Vertex::positionNormalUV( h,  h, -h, 1, 0, 0, 1, 0),
+				Vertex::positionNormalUV( h, -h, -h, 1, 0, 0, 1, 1),
 
 				// Top (+Y)
-				positionNormalUV(-h,  h,  h, 0, 1, 0, 0, 1),
-				positionNormalUV(-h,  h, -h, 0, 1, 0, 0, 0),
-				positionNormalUV( h,  h, -h, 0, 1, 0, 1, 0),
-				positionNormalUV( h,  h,  h, 0, 1, 0, 1, 1),
+				Vertex::positionNormalUV(-h,  h,  h, 0, 1, 0, 0, 1),
+				Vertex::positionNormalUV(-h,  h, -h, 0, 1, 0, 0, 0),
+				Vertex::positionNormalUV( h,  h, -h, 0, 1, 0, 1, 0),
+				Vertex::positionNormalUV( h,  h,  h, 0, 1, 0, 1, 1),
 
 				// Bottom (-Y)
-				positionNormalUV(-h, -h, -h, 0, -1, 0, 0, 1),
-				positionNormalUV(-h, -h,  h, 0, -1, 0, 0, 0),
-				positionNormalUV( h, -h,  h, 0, -1, 0, 1, 0),
-				positionNormalUV( h, -h, -h, 0, -1, 0, 1, 1),
+				Vertex::positionNormalUV(-h, -h, -h, 0, -1, 0, 0, 1),
+				Vertex::positionNormalUV(-h, -h,  h, 0, -1, 0, 0, 0),
+				Vertex::positionNormalUV( h, -h,  h, 0, -1, 0, 1, 0),
+				Vertex::positionNormalUV( h, -h, -h, 0, -1, 0, 1, 1),
 			};
 
 			// 6 faces * 2 triangles * 3 indices = 36
@@ -129,7 +129,7 @@ namespace AlbinoEngine
 
 			// Reuse 24-vertex cube so faces are independent (nice for flat shading/debug).
 			auto V = [&](float x, float y, float z, float r, float g, float b) {
-				return positionColor(x, y, z, r, g, b, 1.0f);
+				return Vertex::positionColor(x, y, z, r, g, b, 1.0f);
 			};
 
 			data.vertices = {
@@ -165,9 +165,9 @@ namespace AlbinoEngine
 		{
 			MeshData data;
 			data.vertices = {
-				positionColor(0.0f, 0.5f, 0.0f, 1, 0, 0, 1),
-				positionColor(0.5f, -0.5f, 0.0f, 0, 1, 0, 1),
-				positionColor(-0.5f, -0.5f, 0.0f, 0, 0, 1, 1),
+				Vertex::positionColor(0.0f, 0.5f, 0.0f, 1, 0, 0, 1),
+				Vertex::positionColor(0.5f, -0.5f, 0.0f, 0, 1, 0, 1),
+				Vertex::positionColor(-0.5f, -0.5f, 0.0f, 0, 0, 1, 1),
 			};
 			data.indices = { 0, 1, 2 };
 			data.stride = sizeof(Vertex);
@@ -181,14 +181,14 @@ namespace AlbinoEngine
 			MeshData data;
 			data.vertices = {
 				// left triangle
-				positionColor(-0.75f, 0.5f, 0.0f, 1, 0, 0, 1),
-				positionColor(-0.25f, -0.5f, 0.0f, 0, 1, 0, 1),
-				positionColor(-1.25f, -0.5f, 0.0f, 0, 0, 1, 1),
+				Vertex::positionColor(-0.75f, 0.5f, 0.0f, 1, 0, 0, 1),
+				Vertex::positionColor(-0.25f, -0.5f, 0.0f, 0, 1, 0, 1),
+				Vertex::positionColor(-1.25f, -0.5f, 0.0f, 0, 0, 1, 1),
 
 				// right triangle
-				positionColor(0.75f, 0.5f, 0.0f, 1, 1, 0, 1),
-				positionColor(1.25f, -0.5f, 0.0f, 0, 1, 1, 1),
-				positionColor(0.25f, -0.5f, 0.0f, 1, 0, 1, 1),
+				Vertex::positionColor(0.75f, 0.5f, 0.0f, 1, 1, 0, 1),
+				Vertex::positionColor(1.25f, -0.5f, 0.0f, 0, 1, 1, 1),
+				Vertex::positionColor(0.25f, -0.5f, 0.0f, 1, 0, 1, 1),
 			};
 
 			data.indices = {
@@ -210,15 +210,15 @@ namespace AlbinoEngine
 
 			quad.vertices = {
 				
-				positionUV(-1.0f,-1.0f, 0.0f, 0.0f, 1.0f),
-				positionUV(-1.0f, 1.0f, 0.0f, 0.0f, 0.0f),
-				positionUV( 1.0f, 1.0f, 0.0f, 1.0f, 0.0f),
-				positionUV( 1.0f,-1.0f, 0.0f, 1.0f, 1.0f)
+				Vertex::positionUV(-1.0f,-1.0f, 0.0f, 0.0f, 1.0f),
+				Vertex::positionUV(-1.0f, 1.0f, 0.0f, 0.0f, 0.0f),
+				Vertex::positionUV( 1.0f, 1.0f, 0.0f, 1.0f, 0.0f),
+				Vertex::positionUV( 1.0f,-1.0f, 0.0f, 1.0f, 1.0f)
 			};
 
 			quad.indices = {
 				0, 1, 2,
-				2, 1, 3
+				0, 2, 3
 			};
 
 			quad.stride = sizeof(Vertex);

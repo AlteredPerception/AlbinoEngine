@@ -145,7 +145,7 @@ namespace AlbinoEngine
 
 	void Pass::render(EffectContext& fx, Mesh& mesh)
 	{
-		if (!fx.device || !fx.context || !fx.camera) return;
+		if (!fx.device || !fx.context) return;
 
 		// Apply pass here.
 		apply(fx.context);

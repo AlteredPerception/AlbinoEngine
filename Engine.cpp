@@ -78,8 +78,16 @@ namespace AlbinoEngine
 		// Load the shaders;
 		m_screenVS = std::make_shared<VertexShader>(m_MainRenderer->getDevice());
 		m_screenPS = std::make_shared<PixelShader>(m_MainRenderer->getDevice());
-		m_screenVS->loadVertexShader(L"media//shaders//PositionTexture2DQuad.shader", "vs_mainQuad", "vs_5_0");
-		m_screenPS->loadPixelShader(L"media//shaders//PositionTexture2DQuad.shader", "ps_mainQuad", "ps_5_0");
+		if (!m_screenVS->loadVertexShader(L"media//shaders//PositionTexture2DQuad.shader", "vs_mainQuad", "vs_5_0"))
+		{
+			MessageBoxA(NULL, "Could not load Vertex shader.", "Error loading shader.", MB_OK);
+			return;
+		}
+		if (!m_screenPS->loadPixelShader(L"media//shaders//PositionTexture2DQuad.shader", "ps_mainQuad", "ps_5_0"))
+		{
+			MessageBoxA(NULL, "Could not load Pixel shader.", "Error loading shader.", MB_OK);
+			return;
+		}
 		if (!m_screenVS) return;
 		if (!m_screenPS) return;
 
@@ -87,7 +95,7 @@ namespace AlbinoEngine
 		auto screenEff = this->getEffectsManager().createEffect("ScreenQuad").get();
 		auto& screenTech = screenEff->createTechnique("screen_quad");
 		screenEff->setActiveTechnique("screen_quad");
-		MessageBoxA(NULL, "THIS IS A TEST!", "TEST!", MB_OK);
+	
 		D3D11_RASTERIZER_DESC screenDesc = {};
 		screenDesc.FillMode = D3D11_FILL_SOLID;
 		screenDesc.CullMode = D3D11_CULL_NONE;
@@ -108,16 +116,37 @@ namespace AlbinoEngine
 		{
 			auto fullscreenPass = std::make_unique<Pass>(m_screenVS, m_screenPS);
 			fullscreenPass->name = "Fullscreen";
-			fullscreenPass->buildInputLayout(this->device());
+			if (!fullscreenPass->buildInputLayout(this->device()))
+			{
+				MessageBoxA(nullptr, "INPUT LAYOUT FAILED!", "Bad Input Layout", MB_OK);
+				return;
+			}
 			fullscreenPass->setRasterizerState(m_screenRaster.Get());
 			fullscreenPass->setDepthStencialState(m_screenDepthDisabled.Get());
 			fullscreenPass->setUsePerObjectCB(false);
 			auto* rt = this->m_renderTargetManager->get(0);
-			if (rt)
+			if (!rt)
 			{
-				fullscreenPass->setTexture(0, rt->getShaderResourceView());
-				fullscreenPass->setSampler(0, rt->getSampler()->getSamplerState());
+				MessageBoxA(nullptr, "Render target 0 is null.", "Error", MB_OK);
+				return;
 			}
+			if (!rt->getShaderResourceView())
+			{
+				MessageBoxA(nullptr, "Render target SRV is null", "Error", MB_OK);
+				return;
+			}
+			if (!rt->getSampler())
+			{
+				MessageBoxA(nullptr, "Render target sampler object is null", "Error", MB_OK);
+				return;
+			}
+			if (!rt->getSampler()->getSamplerState())
+			{
+				MessageBoxA(nullptr, "Render target sampler state is null", "Error", MB_OK);
+				return;
+			}
+			fullscreenPass->setTexture(0, rt->getShaderResourceView());
+			fullscreenPass->setSampler(0, rt->getSampler()->getSamplerState());
 			screenTech.addPass(std::move(fullscreenPass));
 		}
 		
@@ -125,6 +154,7 @@ namespace AlbinoEngine
 		if (!screenQuad)
 		{
 			MessageBoxA(NULL, "Screen Quad is NULL", "ERROR", MB_OK);
+			return;
 		}
 		this->getMeshManager().setMeshEffect(L"mainQuad", "ScreenQuad", "screen_quad");
 
@@ -148,7 +178,7 @@ namespace AlbinoEngine
 				static_cast<float>(m_MainWindow->getHeight()), 
 				0.0f, 1.0f);
 			
-			m_renderViewport->setViewportColor(0.0f, 1.0f, 1.0f, 1.0f);
+			m_renderViewport->setViewportColor(0.0f, 0.0f, 0.0f, 1.0f);
 			if(m_Scene) m_Scene->update(*this, dt);
 			this->m_renderTargetManager->beginRender(0, m_MainRenderer->getContext(), *this->m_renderViewport, this->m_MainRenderer->getDepthBuffer()->getDepthStencilView());
 			if (m_Scene)

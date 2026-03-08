@@ -97,11 +97,21 @@ namespace AlbinoEngine
 	{
 		for (auto& [name, entry] : m_Meshes)
 		{
+			//std::string dbg = "Mesh entry: ";
+			//dbg += std::string(name.begin(), name.end());
+			//dbg += " effect=" + entry.effectName + " tech=" + entry.techniqueName + "\n";
+			//OutputDebugStringA(dbg.c_str());
 			if (!entry.mesh) continue;
 			if (entry.effectName != effectName) continue;
 
+
+			//OutputDebugStringA("Rendering screen quad mesh!\n");
 			Effect* e = effects.getEffect(entry.effectName);
-			if (!e) continue;
+			if (!e) 
+			{ 
+				OutputDebugStringA("Effect lookup failed for screen quad!\n");
+				continue; 
+			}
 
 			if (!entry.techniqueName.empty())
 				e->setActiveTechnique(entry.techniqueName);
