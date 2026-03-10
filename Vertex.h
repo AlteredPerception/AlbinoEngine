@@ -1,5 +1,8 @@
 #pragma once
 
+#include <cstddef>
+#include <cstring>
+#include <dxgiformat.h>
 #include <DirectXMath.h>
 
 namespace AlbinoEngine
@@ -12,101 +15,97 @@ namespace AlbinoEngine
 		DirectX::XMFLOAT2 uv{};       // TEXCOORD0
 		DirectX::XMFLOAT4 color{};    // COLOR
 
-static Vertex positionUV(
-		float xPos, float yPos, float zPos,
-		float u, float v)
-	{
-		Vertex out{};
-		out.position = { xPos, yPos, zPos };
-		out.uv = { u, v };
-		out.normal = { 0.0f, 1.0f, 0.0f };
-		out.tangent = { 1.0f, 0.0f, 0.0f, 1.0f };
-		out.color = { 1.0f, 1.0f, 1.0f, 1.0f };
-		return out;
-	}
-
-	static Vertex positionNormalUV(
-		float xPos, float yPos, float zPos,
-		float nX, float nY, float nZ,
-		float u, float v)
-	{
-		Vertex out{};
-		out.position = { xPos, yPos, zPos };
-		out.normal = { nX, nY, nZ };
-		out.uv = { u, v };
-		out.tangent = { 1.0f, 0.0f, 0.0f, 1.0f };
-		out.color = { 1.0f, 1.0f, 1.0f, 1.0f };
-		return out;
-	}
-
-	static Vertex positionColor(
-		float xPos, float yPos, float zPos,
-		float r, float g, float b, float a = 1.0f)
-	{
-		Vertex out{};
-		out.position = { xPos, yPos, zPos };
-		out.normal = { 0.0f, 1.0f, 0.0f };
-		out.tangent = { 1.0f, 0.0f, 0.0f, 1.0f };
-		out.uv = { 0.0f, 0.0f };
-		out.color = { r, g, b, a };
-		return out;
-	}
-
-	// Handy for debugging lighting + UVs at the same time (e.g., output normal/uv in PS).
-	static Vertex positionNormalUVColor(
-		float xPos, float yPos, float zPos,
-		float nX, float nY, float nZ,
-		float u, float v,
-		float r, float g, float b, float a = 1.0f)
-	{
-		Vertex out{};
-		out.position = { xPos, yPos, zPos };
-		out.normal = { nX, nY, nZ };
-		out.tangent = { 1.0f, 0.0f, 0.0f, 1.0f };
-		out.uv = { u, v };
-		out.color = { r, g, b, a };
-		return out;
-	}
 
 	};
-
-	// Convenience helpers. These keep Vertex a simple POD-like type while
-	// making geometry generation concise.
-
 	
 	struct VertexElementInfo
 	{
-		DXGI_FORMAT format;	// Element format;
-		UINT offset;		// Element offset;
+		DXGI_FORMAT format = DXGI_FORMAT_UNKNOWN;	// Element format;
+		UINT offset = 0;					        // Element offset;
 	};
 
 	inline bool GetVertexElementInfo(const char* semantic, UINT semanticIndex, VertexElementInfo& out)
 	{
 		if (_stricmp(semantic, "POSITION") == 0 && semanticIndex == 0)
 		{
-			out = { DXGI_FORMAT_R32G32B32_FLOAT, (UINT)offsetof(Vertex, position) };
+			out = { DXGI_FORMAT_R32G32B32_FLOAT, static_cast<UINT>(offsetof(Vertex, position)) };
 			return true;
 		}
 		if (_stricmp(semantic, "NORMAL") == 0 && semanticIndex == 0)
 		{
-			out = {DXGI_FORMAT_R32G32B32_FLOAT, (UINT)offsetof(Vertex, normal)};
+			out = {DXGI_FORMAT_R32G32B32_FLOAT, static_cast<UINT>(offsetof(Vertex, normal)) };
 			return true;
 		}
 		if (_stricmp(semantic, "TANGENT") == 0 && semanticIndex == 0)
 		{
-			out = { DXGI_FORMAT_R32G32B32A32_FLOAT, (UINT)offsetof(Vertex, tangent) };
+			out = { DXGI_FORMAT_R32G32B32A32_FLOAT, static_cast<UINT>(offsetof(Vertex, tangent)) };
 			return true;
 		}
 		if (_stricmp(semantic, "TEXCOORD") == 0 && semanticIndex == 0)
 		{
-			out = { DXGI_FORMAT_R32G32_FLOAT, (UINT)offsetof(Vertex, uv) };
+			out = { DXGI_FORMAT_R32G32_FLOAT, static_cast<UINT>(offsetof(Vertex, uv)) };
 			return true;
 		}
 		if (_stricmp(semantic, "COLOR") == 0 && semanticIndex == 0)
 		{
-			out = { DXGI_FORMAT_R32G32B32A32_FLOAT, (UINT)offsetof(Vertex,color) };
+			out = { DXGI_FORMAT_R32G32B32A32_FLOAT, static_cast<UINT>(offsetof(Vertex,color)) };
 			return true;
 		}
 		return false;
+	}
+
+	inline Vertex positionUV(float x, float y, float z, float u, float v)
+	{
+		Vertex vert{};
+		vert.position = { x,y,z };
+		vert.normal = { 0.0f, 1.0f, 0.0f };
+		vert.tangent = { 1.0f, 0.0f, 0.0f, 1.0f };
+		vert.uv = { u,v };
+		vert.color = { 1.0f, 1.0f, 1.0f, 1.0f };
+
+		return vert;
+	}
+
+	inline Vertex positionNormalUV(
+		float x, float y, float z,
+		float nx, float ny, float nz,
+		float u, float v)
+	{
+		Vertex vert{};
+
+		vert.position = { x,y,z };
+		vert.normal = { nx, ny, nz };
+		vert.tangent = { 1.0f, 0.0f, 0.0f, 1.0f };
+		vert.uv = { u,v };
+		vert.color = { 1.0f, 1.0f, 1.0f, 1.0f };
+		return vert;
+	}
+
+	inline Vertex positionColor(
+		float x, float y, float z,
+		float r, float b, float g, float a)
+	{
+		Vertex vert{};
+		vert.position = { x,y,z };
+		vert.normal = { 0.0f, 1.0f, 0.0f };
+		vert.tangent = { 1.0f, 0.0f, 0.0f, 1.0f };
+		vert.uv = { 0.0f,0.0f };
+		vert.color = { r,g,b,a };
+		return vert;
+	}
+
+	inline Vertex positionNormalUVColor(
+		float x, float y, float z,
+		float nx, float ny, float nz,
+		float u, float v,
+		float r, float g, float b, float a)
+	{
+		Vertex vert{};
+		vert.position = { x,y,z };
+		vert.normal = { nx,ny, nz };
+		vert.tangent = { 1.0f, 0.0f, 0.0f, 1.0f };
+		vert.uv = { u,v };
+		vert.color = { r,g,b,a };
+		return vert;
 	}
 }

@@ -13,6 +13,8 @@ namespace AlbinoEngine
 	void Technique::render(EffectContext& fx, Mesh& mesh)
 	{
 		for (auto& p : m_passes)
+		{
 			p->render(fx, mesh);
+		}
 	}
 }

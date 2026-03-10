@@ -1,4 +1,7 @@
 #include "VertexShader.h"
+#include "Vertex.h"
+
+#include <sstream>
 
 namespace AlbinoEngine
 {
@@ -21,6 +24,7 @@ namespace AlbinoEngine
 	bool VertexShader::loadVertexShader(std::wstring vertFile, std::string vertEntryPoint, std::string vertProfile, bool useDebug)
 	{
 		UINT flags = 0;
+
 #if defined(_DEBUG)
 		if (useDebug)
 		{
@@ -56,8 +60,11 @@ namespace AlbinoEngine
 		hr = m_pVertexShaderDevice->CreateVertexShader(m_pVertexBlob->GetBufferPointer(), m_pVertexBlob->GetBufferSize(), nullptr, this->m_pVertexShader.ReleaseAndGetAddressOf());
 		if (FAILED(hr)) {
 			OutputDebugStringA("Could not create vertexShader.\n");
-			m_pVertexBlob->Release();
-			m_pVertexBlob = 0;
+			if (m_pVertexBlob) 
+			{
+				m_pVertexBlob->Release();
+				m_pVertexBlob = 0;
+			}
 			m_pVertexShader.Reset();
 			return false;
 		}
@@ -65,7 +72,9 @@ namespace AlbinoEngine
 
 		hr = D3DReflect(
 			m_pVertexBlob->GetBufferPointer(),
-			m_pVertexBlob->GetBufferSize(), IID_ID3D11ShaderReflection, (void**)m_pVertexShaderReflection.ReleaseAndGetAddressOf());
+			m_pVertexBlob->GetBufferSize(), 
+			IID_ID3D11ShaderReflection, 
+			(void**)m_pVertexShaderReflection.ReleaseAndGetAddressOf());
 		if (FAILED(hr))
 		{
 			OutputDebugString(L"Could not get reflection.\n");
@@ -78,20 +87,21 @@ namespace AlbinoEngine
 
 	bool VertexShader::createInputLayout()
 	{
-		if (m_pVertexShader)
-		{
-			std::vector<D3D11_INPUT_ELEMENT_DESC> elem = this->generateLayOut();
-			HRESULT hr = m_pVertexShaderDevice->CreateInputLayout(
-				elem.data(),
-				elem.size(),
-				this->m_pVertexBlob->GetBufferPointer(),
-				this->m_pVertexBlob->GetBufferSize(),
-				this->m_pVertexShaderLayout.ReleaseAndGetAddressOf());
+		if (!m_pVertexShader)
+			return false;
 
-			if (FAILED(hr)) {
-				OutputDebugStringA("Could not create input layout");
-				return false;
-			}
+		std::vector<D3D11_INPUT_ELEMENT_DESC> elem = this->generateLayOut();
+		HRESULT hr = m_pVertexShaderDevice->CreateInputLayout(
+			elem.data(),
+			static_cast<UINT>(elem.size()),
+			this->m_pVertexBlob->GetBufferPointer(),
+			this->m_pVertexBlob->GetBufferSize(),
+			this->m_pVertexShaderLayout.ReleaseAndGetAddressOf());
+
+		if (FAILED(hr))
+		{
+			OutputDebugString(L"Could not create input layout.\n");
+			return false;
 		}
 		return true;
 	}
@@ -129,7 +139,8 @@ namespace AlbinoEngine
 	std::vector<D3D11_INPUT_ELEMENT_DESC> VertexShader::generateLayOut()
 	{
 		std::vector<D3D11_INPUT_ELEMENT_DESC> layout;
-		if (!m_pVertexShaderReflection) return layout;
+		if (!m_pVertexShaderReflection) 
+			return layout;
 
 		for (UINT i = 0; i < m_pShaderDesc.InputParameters; ++i)
 		{
@@ -165,6 +176,7 @@ namespace AlbinoEngine
 	std::string VertexShader::getShaderInfo() const
 	{
 		std::ostringstream shaderInfo;
+
 		if (m_pVertexShaderReflection)
 		{
 			shaderInfo << "Vertex Shader version: " << std::to_string(this->m_pShaderDesc.Version) << std::endl;
@@ -181,6 +193,7 @@ namespace AlbinoEngine
 	std::string VertexShader::getConstantBufferData() const
 	{
 		std::ostringstream stringStream;
+
 		if (this->m_pVertexShaderReflection)
 		{
 			for (UINT i = 0; i < m_pShaderDesc.ConstantBuffers; ++i)
@@ -188,6 +201,7 @@ namespace AlbinoEngine
 				ID3D11ShaderReflectionConstantBuffer* buffer = this->m_pVertexShaderReflection->GetConstantBufferByIndex(i);
 				D3D11_SHADER_BUFFER_DESC shaderBuffer = {};
 				buffer->GetDesc(&shaderBuffer);
+
 				stringStream << "Constat Buffer name: " << shaderBuffer.Name << std::endl;
 				stringStream << "Size: " << shaderBuffer.Size << std::endl;
 				stringStream << "Type: " << shaderBuffer.Type << std::endl;
@@ -213,20 +227,21 @@ namespace AlbinoEngine
 
 	int VertexShader::getCBufferBindPoint(const std::string& name) const
 	{
-		if (!m_pVertexShaderReflection) return -1;
+		if (!m_pVertexShaderReflection) 
+			return -1;
 
 		D3D11_SHADER_INPUT_BIND_DESC bind = {};
 		HRESULT hr = m_pVertexShaderReflection->GetResourceBindingDescByName(name.c_str(),&bind);
 		if (FAILED(hr) || bind.Type != D3D_SIT_CBUFFER)
-		{
 			return -1;
-		}
+		
 		return static_cast<int>(bind.BindPoint);
 	}
 
 	void VertexShader::dumpBindResources() const
 	{
-		if (!m_pVertexShaderReflection) return;
+		if (!m_pVertexShaderReflection) 
+			return;
 
 		D3D11_SHADER_DESC desc = {};
 		m_pVertexShaderReflection->GetDesc(&desc);

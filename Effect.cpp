@@ -28,7 +28,9 @@ namespace AlbinoEngine
 	void Effect::render(EffectContext& fx, Mesh& mesh)
 	{
 		Technique* t = getTechnique(m_activeTechnique);
-		if (!t)return;
+		if (!t)
+			return;
+
 		t->render(fx, mesh);
 	}
 }

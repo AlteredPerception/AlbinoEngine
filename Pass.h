@@ -1,15 +1,17 @@
 #pragma once
 #include <d3d11.h>
 #include <wrl/client.h>
+
 #include <memory>
 #include <string>
 #include <vector>
 #include <unordered_map>
 
+#include "EffectContext.h"
 #include "VertexShader.h"
 #include "PixelShader.h"
 //#include "Effect.h"
-#include "EffectContext.h"
+
 //#include "ConstantBuffer.h"
 
 namespace AlbinoEngine
@@ -32,7 +34,6 @@ namespace AlbinoEngine
 			std::shared_ptr<VertexShader> vs,
 			std::shared_ptr<PixelShader> ps);
 
-		Pass() = default;
 
 		bool buildInputLayout(ID3D11Device* device); // uses VS reflection
 
@@ -70,6 +71,7 @@ namespace AlbinoEngine
 		ID3D11RasterizerState* m_rs = nullptr;
 		ID3D11DepthStencilState* m_ds = nullptr;
 		ID3D11BlendState* m_bs = nullptr;
+
 		float m_blendFactor[4] = { 0,0,0,0 };
 		UINT m_sampleMask = 0xFFFFFFFF;
 

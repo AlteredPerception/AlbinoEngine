@@ -1,10 +1,11 @@
 #pragma once
-#include <unordered_map>
-#include <memory>
-#include <string>
 
-#include "Technique.h"
+#include <string>
+#include <unordered_map>
+
 #include "EffectContext.h"
+#include "Technique.h"
+
 
 namespace AlbinoEngine
 {
@@ -19,6 +20,7 @@ namespace AlbinoEngine
 		Effect& operator=(const Effect&) = delete;
 		Effect(Effect&&) noexcept = default;
 		Effect& operator=(Effect&&) noexcept = default;
+		~Effect() = default;
 
 		Technique& createTechnique(const std::string& techName);
 

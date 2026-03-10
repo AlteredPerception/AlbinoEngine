@@ -15,7 +15,7 @@ namespace AlbinoEngine
 
 	bool TriangleMesh::initliaze()
 	{
-		this->m_pMeshData = GeometryGenerator::generateTwoTriangleSubmeshes();
+		this->m_pMeshData = GeometryGenerator::generateTwoTrianglesSubmeshes();
 		UINT vertexSize = static_cast<UINT>(m_pMeshData.vertices.size() * sizeof(m_pMeshData.vertices[0]));
 		UINT indexSize = static_cast<UINT>(m_pMeshData.indices.size() * sizeof(uint32_t));
 

@@ -2,6 +2,8 @@
 #include "Mesh.h"
 #include "Camera.h"
 
+#include <DirectXMath.h>
+
 using namespace DirectX;
 using Microsoft::WRL::ComPtr;
 
@@ -15,22 +17,23 @@ namespace AlbinoEngine
 
 	bool Pass::buildInputLayout(ID3D11Device* device)
 	{
-		if (!device || !m_vs) return false;
+		if (!device || !m_vs) 
+			return false;
 
 		auto elements = m_vs->generateLayOut();
-
-		if (elements.empty()) return false;
+		if (elements.empty()) 
+			return false;
 
 		auto* blob = m_vs->getVertexShaderBlob();
-		if (!blob) return false;
+		if (!blob) 
+			return false;
 
 		HRESULT hr = device->CreateInputLayout(
 			elements.data(),
-			(UINT)elements.size(),
+			static_cast<UINT>(elements.size()),
 			blob->GetBufferPointer(),
 			blob->GetBufferSize(),
-			m_inputLayout.ReleaseAndGetAddressOf()
-		);
+			m_inputLayout.ReleaseAndGetAddressOf());
 
 		return SUCCEEDED(hr);
 	}
@@ -49,7 +52,10 @@ namespace AlbinoEngine
 		}
 		else
 		{
-			m_blendFactor[0] = m_blendFactor[1] = m_blendFactor[2] = m_blendFactor[3] = 0.0f;
+			m_blendFactor[0] = 0.0f;
+			m_blendFactor[1] = 0.0f;
+			m_blendFactor[2] = 0.0f;
+			m_blendFactor[3] = 0.0f;
 		}
 	}
 	
@@ -65,8 +71,11 @@ namespace AlbinoEngine
 
 	bool Pass::ensurePerObjectCB(ID3D11Device* device)
 	{
-		if (m_cbPerObject) return true;
-		if (!device) return false;
+		if (m_cbPerObject) 
+			return true;
+
+		if (!device) 
+			return false;
 
 		D3D11_BUFFER_DESC bd{};
 		bd.Usage = D3D11_USAGE_DEFAULT;
@@ -79,13 +88,14 @@ namespace AlbinoEngine
 
 	void Pass::apply(ID3D11DeviceContext* ctx)
 	{
-		if (!ctx) return;
+		if (!ctx) 
+			return;
 
-		if (!m_rs) OutputDebugStringA("Pass::apply(): m_rs is null\n");
-		if (!m_inputLayout) OutputDebugStringA("Pass:apply(): m_inputLayout is null\n");
-		if (m_ds == nullptr)
-			OutputDebugStringA("WARNING: Pass has no depth state; inheriting previous OM depth state.\n");
-		// States
+		//if (!m_rs) OutputDebugStringA("Pass::apply(): m_rs is null\n");
+		//if (!m_inputLayout) OutputDebugStringA("Pass:apply(): m_inputLayout is null\n");
+		//if (m_ds == nullptr)
+		//	OutputDebugStringA("WARNING: Pass has no depth state; inheriting previous OM depth state.\n");
+		
 		ctx->RSSetState(m_rs);
 		ctx->OMSetDepthStencilState(m_ds, 0);
 		ctx->OMSetBlendState(m_bs, m_blendFactor, m_sampleMask);
@@ -109,8 +119,11 @@ namespace AlbinoEngine
 
 	void Pass::updateAndBindPerObjectCB(EffectContext& fx, Mesh& mesh)
 	{
-		if (!fx.context || !fx.camera) return;
-		if (!ensurePerObjectCB(fx.device)) return;
+		if (!fx.context || !fx.camera) 
+			return;
+
+		if (!ensurePerObjectCB(fx.device)) 
+			return;
 
 		// Build world matrix from mesh TRS 
 		XMFLOAT3 pos = mesh.getMeshPosition();
@@ -145,14 +158,16 @@ namespace AlbinoEngine
 
 	void Pass::render(EffectContext& fx, Mesh& mesh)
 	{
-		if (!fx.device || !fx.context) return;
+		if (!fx.device || !fx.context) 
+			return;
 
 		// Apply pass here.
 		apply(fx.context);
 
 		if (m_usePerObjectCB)
 		{
-			if (!fx.camera) return;
+			if (!fx.camera) 
+				return;
 			updateAndBindPerObjectCB(fx, mesh);
 		}
 		// Per-object data

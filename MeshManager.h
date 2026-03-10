@@ -1,23 +1,22 @@
 #pragma once
 
+#include <memory>
+#include <unordered_map>
+#include <string>
+
+#include <d3d11.h>
+
 #include "Mesh.h"
 #include "EffectManager.h"
 #include "EffectContext.h"
-
-#include <unordered_map>
-#include <memory>
-#include <string>
 
 
 namespace AlbinoEngine
 {
 	
-	using MeshPtr = std::shared_ptr<Mesh>;
-	using UnorderedMeshMap = std::unordered_map<std::wstring, MeshPtr>;
-
 	struct MeshEntry
 	{
-		MeshPtr mesh;
+		std::shared_ptr<Mesh> mesh;
 		std::string effectName;
 		std::string techniqueName;
 	};
@@ -25,8 +24,14 @@ namespace AlbinoEngine
 	{
 	public:
 		MeshManager(ID3D11Device* device, ID3D11DeviceContext* context);
+		~MeshManager() = default;
 
+		// Generic creation.
 		Mesh* createMesh(const std::wstring& meshName, const std::wstring& meshType);
+		// Typed helpers.
+		Mesh* createCube(const std::wstring& name);
+		Mesh* createPlane(const std::wstring& name);
+		Mesh* createScreenQuad(const std::wstring& name);
 
 		Mesh* getMeshByName(const std::wstring& name);
 
@@ -34,16 +39,16 @@ namespace AlbinoEngine
 			const std::string& effectName, 
 			const std::string& techniqueName);
 
+		// Render paths
 		void renderAll(EffectManager& effect, EffectContext& fx);
 		void renderAllExceptEffect(EffectManager& effects, EffectContext& fx, const std::string& excludedEffect);
 		void renderOnlyEffect(EffectManager& effects, EffectContext& fx, const std::string& effectName);
+
 	protected:
 		ID3D11Device* m_meshDevice = nullptr;
 		ID3D11DeviceContext* m_meshContext = nullptr;
 		
 		std::unordered_map<std::wstring, MeshEntry> m_Meshes;
-		//UnorderedMeshMap m_MeshMap;
-		//Effect m_Effect;
-		//EffectManager m_effectManager;
+		
 	};
 }

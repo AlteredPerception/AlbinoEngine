@@ -1,9 +1,10 @@
 #include "MeshManager.h"
+
 #include "CubeMesh.h"
 #include "PlaneMesh.h"
 #include "ScreenQuadMesh.h"
-//#include "EffectManager.h"
-//#include "Effect.h"
+
+#include <iostream>
 
 namespace AlbinoEngine
 {
@@ -17,7 +18,7 @@ namespace AlbinoEngine
 
 	Mesh* MeshManager::createMesh(const std::wstring& meshName, const std::wstring& meshType)
 	{
-		MeshPtr mesh;
+		std::shared_ptr<Mesh> mesh;
 
 		if (meshType == L"cubeMesh")
 		{
@@ -34,17 +35,35 @@ namespace AlbinoEngine
 			mesh->initliaze();
 		}
 
-		if (!mesh) return nullptr;
+		if (!mesh)
+			return nullptr;
 
 		m_Meshes[meshName].mesh = mesh;
+
 		return mesh.get();
+	}
+
+	Mesh* MeshManager::createCube(const std::wstring& name)
+	{
+		return createMesh(name, L"cubeMesh");
+	}
+
+	Mesh* MeshManager::createPlane(const std::wstring& name)
+	{
+		return createMesh(name, L"planeMesh");
+	}
+
+	Mesh* MeshManager::createScreenQuad(const std::wstring& name)
+	{
+		return createMesh(name, L"screenQuadMesh");
 	}
 
 	Mesh* MeshManager::getMeshByName(const std::wstring& name)
 	{
 		auto it = m_Meshes.find(name);
-		if (it == m_Meshes.end() || !it->second.mesh)
+		if (it == m_Meshes.end())
 			return nullptr;
+
 		return it->second.mesh.get();
 	}
 
@@ -54,69 +73,71 @@ namespace AlbinoEngine
 		auto it = m_Meshes.find(meshName);
 		if (it == m_Meshes.end()) return;
 
-		it->second.effectName = std::move(effectName);
-		it->second.techniqueName = std::move(techniqueName);
+		it->second.effectName = effectName; //std::move(effectName);
+		it->second.techniqueName = techniqueName; //std::move(techniqueName);
 	}
 
 	void MeshManager::renderAll(EffectManager& effects, EffectContext& fx)
 	{
 		// IMPORTANT: fx.camera must be valid here. Camera provided by the scene.
-		for (auto& [name, entry] : m_Meshes)
+		for (auto& entry : m_Meshes)
 		{
-			if (!entry.mesh) 
+			if (!entry.second.mesh) 
 				continue;
 
-			Effect* e = effects.getEffect(entry.effectName);
-			if (!e) 
+			if (entry.second.effectName.empty())
 				continue;
 
-			if (!entry.techniqueName.empty())
-				e->setActiveTechnique(entry.techniqueName);
+			Effect* effect = effects.getEffect(entry.second.effectName);
+			if (!effect) 
+				continue;
 
-			e->render(fx, *entry.mesh);
+			if (!entry.second.techniqueName.empty())
+				effect->setActiveTechnique(entry.second.techniqueName);
+
+			effect->render(fx, *entry.second.mesh);
 		}
 	}
+
 	void MeshManager::renderAllExceptEffect(EffectManager& effects, EffectContext& fx, const std::string& excludedEffect)
 	{
-		for (auto& [name, entry] : m_Meshes)
+		for (auto& entry : m_Meshes)
 		{
-			if (!entry.mesh) continue;
-			if (entry.effectName == excludedEffect) continue;
+			if (!entry.second.mesh) 
+				continue;
 
-			Effect* e = effects.getEffect(entry.effectName);
-			if (!e) continue;
+			if (entry.second.effectName == excludedEffect) 
+				continue;
 
-			if (!entry.techniqueName.empty())
-				e->setActiveTechnique(entry.techniqueName);
+			Effect* effect = effects.getEffect(entry.second.effectName);
+			if (!effect) 
+				continue;
 
-			e->render(fx, *entry.mesh);
+			if (!entry.second.techniqueName.empty())
+				effect->setActiveTechnique(entry.second.techniqueName);
+
+			effect->render(fx, *entry.second.mesh);
 		}
 	}
 
 	void MeshManager::renderOnlyEffect(EffectManager& effects, EffectContext& fx, const std::string& effectName)
 	{
-		for (auto& [name, entry] : m_Meshes)
+		for (auto& entry : m_Meshes)
 		{
-			//std::string dbg = "Mesh entry: ";
-			//dbg += std::string(name.begin(), name.end());
-			//dbg += " effect=" + entry.effectName + " tech=" + entry.techniqueName + "\n";
-			//OutputDebugStringA(dbg.c_str());
-			if (!entry.mesh) continue;
-			if (entry.effectName != effectName) continue;
+			if (!entry.second.mesh) continue;
+			if (entry.second.effectName != effectName) continue;
 
 
 			//OutputDebugStringA("Rendering screen quad mesh!\n");
-			Effect* e = effects.getEffect(entry.effectName);
-			if (!e) 
-			{ 
-				OutputDebugStringA("Effect lookup failed for screen quad!\n");
-				continue; 
-			}
+			Effect* effect = effects.getEffect(entry.second.effectName);
+			if (!effect)
+				continue;
+			
 
-			if (!entry.techniqueName.empty())
-				e->setActiveTechnique(entry.techniqueName);
+			if (!entry.second.techniqueName.empty())
+				effect->setActiveTechnique(entry.second.techniqueName);
 
-			e->render(fx, *entry.mesh);
+			effect->render(fx, *entry.second.mesh);
 		}
 	}
 }
