@@ -14,6 +14,7 @@
 #include "Scene.h"
 #include "VertexShader.h"
 #include "PixelShader.h"
+#include "LightManager.h"
 
 
 namespace AlbinoEngine
@@ -43,11 +44,14 @@ namespace AlbinoEngine
 		TextureManager& getTextureManager() const { return *m_TextureManager.get(); }
 		MeshManager& getMeshManager() const { return *m_MeshManager.get(); }
 		EffectManager& getEffectsManager() const { return *m_effectManager; }
-		
+		LightManager& getLightManager() const { return *m_lightManager; }
+
 		// Shorter accessors.
 		TextureManager& texture() { return *m_TextureManager; }
 		MeshManager& meshes() { return *m_MeshManager; }
 		EffectManager& effects() { return *m_effectManager; }
+		LightManager& lights() { return *m_lightManager; }
+
 		RenderTargetManager& getRenderTargetManager() const { return *m_renderTargetManager.get(); }
 
 		void createScreenQuad();
@@ -66,7 +70,7 @@ namespace AlbinoEngine
 		std::unique_ptr<TextureManager> m_TextureManager;
 		std::unique_ptr<MeshManager> m_MeshManager;
 		std::unique_ptr<EffectManager> m_effectManager;
-
+		std::unique_ptr<LightManager> m_lightManager;
 		std::unique_ptr<IScene> m_Scene;
 
 		// Fullscreen quad rendering resources.

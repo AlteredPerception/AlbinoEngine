@@ -48,7 +48,14 @@ namespace AlbinoEngine
 			this->m_MainRenderer->getContext());
 
 		m_effectManager = std::make_unique<EffectManager>();
+		m_lightManager = std::make_unique<LightManager>();
 
+		// Default directional light
+		DirectionalLight sun{};
+		sun.direction = { 0.3f, -1.0f, 0.2f };
+		sun.color = { 1.0f, 0.98f, 0.95f };
+		sun.intensity = 1.0f;
+		m_lightManager->setDirectionalLight(sun);
 		createScreenQuad();
 
 		m_Running = true;
@@ -63,6 +70,7 @@ namespace AlbinoEngine
 		}
 
 		m_Scene.reset();
+		m_lightManager.reset();
 		m_effectManager.reset();
 		m_MeshManager.reset();
 		m_TextureManager.reset();
@@ -134,6 +142,7 @@ namespace AlbinoEngine
 			if (m_Scene)
 			{
 				EffectContext sceneFX = m_Scene->buildEffectContext(*this);
+				sceneFX.directionalLight = &m_lightManager->getDirectionalLight();
 				m_MeshManager->renderAllExceptEffect(*m_effectManager, sceneFX, "ScreenQuad");
 			}
 				//m_Scene->render(*this);
@@ -149,6 +158,7 @@ namespace AlbinoEngine
 			quadFX.device = this->device();
 			quadFX.context = this->context();
 			quadFX.camera = nullptr;
+			quadFX.directionalLight = nullptr;
 			m_MeshManager->renderOnlyEffect(*m_effectManager, quadFX, "ScreenQuad");
 
 			// Unbind SRV used by fullscreen pass to avoid next-frame RTV/SRV
