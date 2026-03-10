@@ -160,8 +160,8 @@ namespace AlbinoEngine
 		XMMATRIX worldViewProjection = world * fx.camera->getViewProjMatrix();
 		CB_WorldViewProj cb{};
 		cb.world = XMMatrixTranspose(world);
-		cb.worldInvTranspose = worldInvTranspose;
-		cb.worldViewProjction = worldViewProjection;
+		cb.worldInvTranspose = XMMatrixTranspose(worldInvTranspose);
+		cb.worldViewProjction = XMMatrixTranspose(worldViewProjection);
 		fx.context->UpdateSubresource(m_cbPerObject.Get(), 0, nullptr, &cb, 0, 0);
 
 		// Bind to the slot the VS expects.

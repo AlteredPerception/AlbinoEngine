@@ -13,5 +13,8 @@ namespace AlbinoEngine
 
 		DirectX::XMFLOAT3 cameraPosition = { 0.0f, 0.0f,0.0f };
 		float ambientStrength = 0.1f;
+
+		DirectX::XMFLOAT3 specularColor = { 1.0f,0.8f,1.0f };
+		float shininess = 16.0f;
 	};
 }

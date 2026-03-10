@@ -53,8 +53,12 @@ namespace AlbinoEngine
 		// Default directional light
 		DirectionalLight sun{};
 		sun.direction = { 0.3f, -1.0f, 0.2f };
-		sun.color = { 1.0f, 0.98f, 0.95f };
-		sun.intensity = 1.0f;
+
+		DirectX::XMVECTOR d = DirectX::XMLoadFloat3(&sun.direction);
+		d = DirectX::XMVector3Normalize(d);
+		DirectX::XMStoreFloat3(&sun.direction, d);
+		sun.color = { 1.0f, 0.75f, 1.0f };
+		sun.intensity = 1.5f;
 		m_lightManager->setDirectionalLight(sun);
 		createScreenQuad();
 
