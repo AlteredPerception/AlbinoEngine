@@ -8,31 +8,28 @@
 #include <unordered_map>
 
 #include "EffectContext.h"
+#include "FrameConstants.h"
 #include "VertexShader.h"
 #include "PixelShader.h"
-//#include "Effect.h"
-
-//#include "ConstantBuffer.h"
 
 namespace AlbinoEngine
 {
 	class Mesh;
-	//class Camera;
 
 
 	struct alignas(16) CB_WorldViewProj
 	{
+		DirectX::XMMATRIX world;
+		DirectX::XMMATRIX worldInvTranspose;
 		DirectX::XMMATRIX worldViewProjction;
+	
 	};
-	static_assert(sizeof(CB_WorldViewProj) == 64);
+	//static_assert(sizeof(CB_WorldViewProj) == 64);
 
 	class Pass
 	{
 	public:
-
-		Pass(
-			std::shared_ptr<VertexShader> vs,
-			std::shared_ptr<PixelShader> ps);
+		Pass(std::shared_ptr<VertexShader> vs, std::shared_ptr<PixelShader> ps);
 
 
 		bool buildInputLayout(ID3D11Device* device); // uses VS reflection
@@ -60,12 +57,18 @@ namespace AlbinoEngine
 		const char* name = "Pass";
 	private:
 		bool ensurePerObjectCB(ID3D11Device* device);
+		bool ensureFrameLightingCB(ID3D11Device* device);
+
+
 		void updateAndBindPerObjectCB(EffectContext& fx, Mesh& mes);
+		void updateAndBindFrameLightingCB(EffectContext& fx);
 	protected:
 		std::shared_ptr<VertexShader> m_vs;
 		std::shared_ptr<PixelShader> m_ps;
 
 		Microsoft::WRL::ComPtr<ID3D11InputLayout> m_inputLayout;
+		Microsoft::WRL::ComPtr<ID3D11Buffer> m_cbPerObject;
+		Microsoft::WRL::ComPtr<ID3D11Buffer> m_cbFrameLighting;
 		
 		// States (raw pointers ok if owned elsewhere; use ComPtr if you want ownership)
 		ID3D11RasterizerState* m_rs = nullptr;
@@ -76,8 +79,6 @@ namespace AlbinoEngine
 		UINT m_sampleMask = 0xFFFFFFFF;
 
 		bool m_usePerObjectCB = true;
-		// Per-object constant buffer (WVP)
-		Microsoft::WRL::ComPtr<ID3D11Buffer> m_cbPerObject;
 
 		// Textures/samplers
 		std::unordered_map<UINT, ID3D11ShaderResourceView*> m_psSrvs;

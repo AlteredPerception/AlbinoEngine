@@ -60,6 +60,7 @@ namespace AlbinoEngine
 
 		DirectX::XMMATRIX getViewProjMatrix() const;
 
+		DirectX::XMFLOAT3 getCameraPosition() const { return m_pCameraPosition; }
 	protected:
 		std::string m_pCameraName;
 		// view variables.

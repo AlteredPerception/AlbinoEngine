@@ -86,6 +86,23 @@ namespace AlbinoEngine
 		return SUCCEEDED(hr);
 	}
 
+	bool Pass::ensureFrameLightingCB(ID3D11Device* device)
+	{
+		if (m_cbFrameLighting)
+			return true;
+
+		if (!device)
+			return false;
+
+		D3D11_BUFFER_DESC bd{};
+		bd.Usage = D3D11_USAGE_DEFAULT;
+		bd.ByteWidth = sizeof(CB_FrameLighting);
+		bd.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
+
+		HRESULT hr = device->CreateBuffer(&bd, nullptr, m_cbFrameLighting.ReleaseAndGetAddressOf());
+		return SUCCEEDED(hr);
+	}
+
 	void Pass::apply(ID3D11DeviceContext* ctx)
 	{
 		if (!ctx) 
@@ -139,9 +156,12 @@ namespace AlbinoEngine
 		);
 
 		XMMATRIX world = Scale * Rotation * Translate;
-
+		XMMATRIX worldInvTranspose = XMMatrixTranspose(XMMatrixInverse(NULL, world));
+		XMMATRIX worldViewProjection = world * fx.camera->getViewProjMatrix();
 		CB_WorldViewProj cb{};
-		cb.worldViewProjction = XMMatrixTranspose(world * fx.camera->getViewProjMatrix());
+		cb.world = XMMatrixTranspose(world);
+		cb.worldInvTranspose = worldInvTranspose;
+		cb.worldViewProjction = worldViewProjection;
 		fx.context->UpdateSubresource(m_cbPerObject.Get(), 0, nullptr, &cb, 0, 0);
 
 		// Bind to the slot the VS expects.
@@ -154,6 +174,30 @@ namespace AlbinoEngine
 		}
 		ID3D11Buffer* buffer = m_cbPerObject.Get();
 		fx.context->VSSetConstantBuffers(slot, 1, &buffer);
+	}
+
+	void Pass::updateAndBindFrameLightingCB(EffectContext& fx)
+	{
+		if (!fx.context || !fx.directionalLight)
+			return;
+
+		if (!ensureFrameLightingCB(fx.device))
+			return;
+
+		CB_FrameLighting cb{};
+		cb.lightDirection = fx.directionalLight->direction;
+		cb.lightColor = fx.directionalLight->color;
+		cb.lightIntensity = fx.directionalLight->intensity;
+
+		if (fx.camera)
+			cb.cameraPosition = fx.camera->getCameraPosition();
+
+		cb.ambientStrength = 0.10f;
+
+		fx.context->UpdateSubresource(m_cbFrameLighting.Get(), 0, nullptr, &cb, 0, 0);
+
+		ID3D11Buffer* buf = m_cbFrameLighting.Get();
+		fx.context->PSSetConstantBuffers(0, 1, &buf);
 	}
 
 	void Pass::render(EffectContext& fx, Mesh& mesh)
@@ -169,6 +213,7 @@ namespace AlbinoEngine
 			if (!fx.camera) 
 				return;
 			updateAndBindPerObjectCB(fx, mesh);
+			updateAndBindFrameLightingCB(fx);
 		}
 		// Per-object data
 		//updateAndBindPerObjectCB(fx, mesh);
