@@ -71,8 +71,13 @@ namespace AlbinoEngine
 
 		std::shared_ptr<ConstantBuffer> getConstantBuffer() const { return this->m_pWorldViewProjection; }
 
+		void setCastShadows(bool cast) { m_castShadows = cast; }
+
+		bool getCastShadows() const { return this->m_castShadows; }
 
 	protected:
+
+		bool m_castShadows = true;
 		std::vector<std::unique_ptr<Pass>> passes;
 		DirectX::XMFLOAT3 m_pPosition;
 		DirectX::XMFLOAT3 m_pScale;

@@ -151,6 +151,9 @@ namespace AlbinoEngine
 			if (entry.second.effectName == excludedEffect)
 				continue;
 
+			if (!entry.second.mesh->getCastShadows())
+				continue;
+
 			effect.render(fx, *entry.second.mesh);
 		}
 	}

@@ -67,23 +67,52 @@ SamplerState diffuseSampler : register(s0);
 Texture2D shadowMap : register(t1);
 SamplerComparisonState shadowSampler : register(s1);
 
+//float computeShadow(float4 shadowPos)
+//{
+//    float3 proj = shadowPos.xyz / shadowPos.w;
+
+//    float2 uv = proj.xy * 0.5f + 0.5f;
+//    uv.y = 1.0f - uv.y;
+
+//    float depth = proj.z;
+
+//    if (uv.x < 0 || uv.x > 1 || uv.y < 0 || uv.y > 1)
+//        return 1.0f;
+
+//    return shadowMap.SampleCmpLevelZero(
+//        shadowSampler,
+//        uv,
+//        depth - shadowBias
+//    );
+//}
+
 float computeShadow(float4 shadowPos)
 {
+    if (abs(shadowPos.w) < 0.0001f)
+        return 1.0f;
+
     float3 proj = shadowPos.xyz / shadowPos.w;
 
+    // NDC [-1, 1] -> UV [0, 1]
     float2 uv = proj.xy * 0.5f + 0.5f;
     uv.y = 1.0f - uv.y;
 
     float depth = proj.z;
 
-    if (uv.x < 0 || uv.x > 1 || uv.y < 0 || uv.y > 1)
+    // Outside shadow map = lit
+    if (uv.x < 0.0f || uv.x > 1.0f || uv.y < 0.0f || uv.y > 1.0f || depth < 0.0f || depth > 1.0f)
         return 1.0f;
 
-    return shadowMap.SampleCmpLevelZero(
-        shadowSampler,
-        uv,
-        depth - shadowBias
-    );
+    uint w, h;
+    shadowMap.GetDimensions(w, h);
+
+    int2 texel = int2(uv * float2(w, h));
+    texel = clamp(texel, int2(0, 0), int2((int)w - 1, (int)h - 1));
+
+    float shadowDepth = shadowMap.Load(int3(texel, 0)).r;
+    float currentDepth = depth - shadowBias;
+
+    return (currentDepth <= shadowDepth) ? 1.0f : 0.5f;
 }
 
 float4 ps_main(VS_OUTPUT input) : SV_TARGET
@@ -108,7 +137,7 @@ float4 ps_main(VS_OUTPUT input) : SV_TARGET
 
    float3 finalColor = ambient + (diffuse + specular) * shadow;
 
-   return float4(finalColor, albedo.a);
+   return float4(saturate(finalColor), albedo.a);
    //return float4(shadow, shadow, shadow, 1.0f);
 }
 
