@@ -167,8 +167,7 @@ namespace AlbinoEngine
 			// ===================================================== //
 
 			// Unbind previous frame's shadow SRV
-			ID3D11ShaderResourceView* nullShadowSRV[1] = { nullptr };
-			context()->PSSetShaderResources(1, 1, nullShadowSRV);
+			
 			DirectionalLight sun = m_lightManager->getDirectionalLight();
 			DirectX::XMVECTOR dir = DirectX::XMLoadFloat3(&sun.direction);
 			dir = DirectX::XMVector2Normalize(dir);
@@ -187,7 +186,8 @@ namespace AlbinoEngine
 			DirectX::XMMATRIX lightView = DirectX::XMMatrixLookAtLH(eye, target, up);
 			DirectX::XMMATRIX lightProj = DirectX::XMMatrixOrthographicLH(40.0f, 40.0f, 0.0f, 100.0f);
 			DirectX::XMMATRIX lightViewProj = lightView * lightProj;
-
+			ID3D11ShaderResourceView* nullShadowSRV[1] = { nullptr };
+			context()->PSSetShaderResources(1, 1, nullShadowSRV);
 			if (m_shadowEffect)
 			{
 				

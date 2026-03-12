@@ -73,6 +73,7 @@ float computeShadow(float4 shadowPos)
    // NDC [-1 ,1] -> UV [0,1]
    float2 uv = proj.xy * 0.5f + 0.5f; 
    uv.y = 1.0f - uv.y;
+   uv = saturate(uv);
 
    float depth = proj.z;
    
