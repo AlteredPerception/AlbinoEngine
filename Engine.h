@@ -15,6 +15,7 @@
 #include "VertexShader.h"
 #include "PixelShader.h"
 #include "LightManager.h"
+#include "ShadowMap.h"
 
 
 namespace AlbinoEngine
@@ -55,6 +56,7 @@ namespace AlbinoEngine
 		RenderTargetManager& getRenderTargetManager() const { return *m_renderTargetManager.get(); }
 
 		void createScreenQuad();
+		void createShadowPass();
 
 	private:
 		void messagePump();
@@ -71,6 +73,7 @@ namespace AlbinoEngine
 		std::unique_ptr<MeshManager> m_MeshManager;
 		std::unique_ptr<EffectManager> m_effectManager;
 		std::unique_ptr<LightManager> m_lightManager;
+		std::unique_ptr<ShadowMap> m_shadowMap;
 		std::unique_ptr<IScene> m_Scene;
 
 		// Fullscreen quad rendering resources.
@@ -79,5 +82,9 @@ namespace AlbinoEngine
 
 		Microsoft::WRL::ComPtr<ID3D11RasterizerState> m_screenRaster;
 		Microsoft::WRL::ComPtr<ID3D11DepthStencilState> m_screenDepthDIsabled;
+
+		// Shadow pass
+		std::shared_ptr<VertexShader> m_shadowVS;
+		Effect* m_shadowEffect = nullptr;
 	};
 }

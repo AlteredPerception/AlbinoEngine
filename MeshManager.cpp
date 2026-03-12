@@ -140,4 +140,18 @@ namespace AlbinoEngine
 			effect->render(fx, *entry.second.mesh);
 		}
 	}
+
+	void MeshManager::renderAllWithOverrideEffect(Effect& effect, EffectContext& fx, const std::string& excludedEffect)
+	{
+		for (auto& entry : m_Meshes)
+		{
+			if (!entry.second.mesh)
+				continue;
+
+			if (entry.second.effectName == excludedEffect)
+				continue;
+
+			effect.render(fx, *entry.second.mesh);
+		}
+	}
 }

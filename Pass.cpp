@@ -1,6 +1,7 @@
 #include "Pass.h"
 #include "Mesh.h"
 #include "Camera.h"
+#include "ShadowMap.h"
 
 #include <DirectXMath.h>
 
@@ -136,7 +137,7 @@ namespace AlbinoEngine
 
 	void Pass::updateAndBindPerObjectCB(EffectContext& fx, Mesh& mesh)
 	{
-		if (!fx.context || !fx.camera) 
+		if (!fx.context) 
 			return;
 
 		if (!ensurePerObjectCB(fx.device)) 
@@ -157,7 +158,20 @@ namespace AlbinoEngine
 
 		XMMATRIX world = Scale * Rotation * Translate;
 		XMMATRIX worldInvTranspose = XMMatrixTranspose(XMMatrixInverse(NULL, world));
-		XMMATRIX worldViewProjection = world * fx.camera->getViewProjMatrix();
+		XMMATRIX worldViewProjection = XMMatrixIdentity();
+		
+		if (fx.useViewProjOverride) 
+		{
+			worldViewProjection = world * fx.viewProjOverride;
+		} 
+		else
+		{
+			if (!fx.camera)
+				return;
+
+			worldViewProjection = world * fx.camera->getViewProjMatrix();
+		}
+
 		CB_WorldViewProj cb{};
 		cb.world = XMMatrixTranspose(world);
 		cb.worldInvTranspose = XMMatrixTranspose(worldInvTranspose);
@@ -169,8 +183,9 @@ namespace AlbinoEngine
 		UINT slot = 0;
 		if (m_vs)
 		{
-			UINT s = m_vs->getCBufferBindPoint("WorldViewProjection");
-			if (s != UINT(-1)) slot = s;
+			UINT reflectedSlot = m_vs->getCBufferBindPoint("WorldViewProjection");
+			if (reflectedSlot != UINT(-1)) 
+				slot = reflectedSlot;
 		}
 		ID3D11Buffer* buffer = m_cbPerObject.Get();
 		fx.context->VSSetConstantBuffers(slot, 1, &buffer);
@@ -193,11 +208,22 @@ namespace AlbinoEngine
 			cb.cameraPosition = fx.camera->getCameraPosition();
 
 		cb.ambientStrength = 0.10f;
-
+		cb.specularColor = { 1.0f, 1.0f, 1.0f };
+		cb.shininess = 32.0f;
+		cb.lightViewProjection = XMMatrixTranspose(fx.lightViewProjection);
+		cb.shadowBias = 0.0015f;
 		fx.context->UpdateSubresource(m_cbFrameLighting.Get(), 0, nullptr, &cb, 0, 0);
 
 		ID3D11Buffer* buf = m_cbFrameLighting.Get();
-		fx.context->PSSetConstantBuffers(0, 1, &buf);
+		fx.context->VSSetConstantBuffers(1, 1, &buf);
+		fx.context->PSSetConstantBuffers(1, 1, &buf);
+		
+		// Bind shadow map to t1 for normal scene rendering.
+		if (fx.shadowMap)
+		{
+			ID3D11ShaderResourceView* shadowSrv = fx.shadowMap->getSRV();
+			fx.context->PSSetShaderResources(1, 1, &shadowSrv);
+		}
 	}
 
 	void Pass::render(EffectContext& fx, Mesh& mesh)
@@ -210,8 +236,9 @@ namespace AlbinoEngine
 
 		if (m_usePerObjectCB)
 		{
-			if (!fx.camera) 
+			if (!fx.useViewProjOverride && !fx.camera)
 				return;
+
 			updateAndBindPerObjectCB(fx, mesh);
 			updateAndBindFrameLightingCB(fx);
 		}

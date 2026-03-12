@@ -20,6 +20,7 @@ namespace AlbinoEngine
 		std::string effectName;
 		std::string techniqueName;
 	};
+
 	class MeshManager
 	{
 	public:
@@ -44,6 +45,8 @@ namespace AlbinoEngine
 		void renderAllExceptEffect(EffectManager& effects, EffectContext& fx, const std::string& excludedEffect);
 		void renderOnlyEffect(EffectManager& effects, EffectContext& fx, const std::string& effectName);
 
+		// New: render all non-screenquad meshes with one override effect/technique.
+		void renderAllWithOverrideEffect(Effect& effect, EffectContext& fx, const std::string& excludedEffect = "ScreenQuad");
 	protected:
 		ID3D11Device* m_meshDevice = nullptr;
 		ID3D11DeviceContext* m_meshContext = nullptr;

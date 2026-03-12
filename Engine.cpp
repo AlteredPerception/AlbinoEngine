@@ -60,7 +60,12 @@ namespace AlbinoEngine
 		sun.color = { 1.0f, 0.75f, 1.0f };
 		sun.intensity = 1.5f;
 		m_lightManager->setDirectionalLight(sun);
+
+		m_shadowMap = std::make_unique<ShadowMap>(m_MainRenderer->getDevice(), 2048, 2048);
+		if (!m_shadowMap->initialize())
+			return false;
 		createScreenQuad();
+		createShadowPass();
 
 		m_Running = true;
 		return true;
@@ -74,6 +79,7 @@ namespace AlbinoEngine
 		}
 
 		m_Scene.reset();
+		m_shadowMap.reset();
 		m_lightManager.reset();
 		m_effectManager.reset();
 		m_MeshManager.reset();
@@ -108,7 +114,28 @@ namespace AlbinoEngine
 		}
 	}
 
-	
+	void Engine::createShadowPass()
+	{
+		m_shadowVS = std::make_shared<VertexShader>(m_MainRenderer->getDevice());
+		m_shadowVS->loadVertexShader(
+			L"media//shaders//ShadowDepth.shader",
+			"vs_shadow",
+			"vs_5_0");
+
+		if (!m_shadowVS->getVertexShader())
+			return;
+
+		m_shadowEffect = m_effectManager->createEffect("ShadowDepth").get();
+		auto& tech = m_shadowEffect->createTechnique("shadow_depth");
+		m_shadowEffect->setActiveTechnique("shadow_depth");
+
+		auto shadowPass = std::make_unique<Pass>(m_shadowVS, std::shared_ptr<PixelShader>{});
+		shadowPass->name = "ShadowDepth";
+		if (!shadowPass->buildInputLayout(device()))
+			return;
+
+		tech.addPass(std::move(shadowPass));
+	}
 	int Engine::run()
 	{
 		LARGE_INTEGER freq;
@@ -135,10 +162,52 @@ namespace AlbinoEngine
 				static_cast<float>(m_MainWindow->getHeight()), 
 				0.0f, 1.0f);
 			
+			// ===================================================== //
+			// Stage 0: Shadow map pass
+			// ===================================================== //
+
+			// Unbind previous frame's shadow SRV
+			ID3D11ShaderResourceView* nullShadowSRV[1] = { nullptr };
+			context()->PSSetShaderResources(1, 1, nullShadowSRV);
+			DirectionalLight sun = m_lightManager->getDirectionalLight();
+			DirectX::XMVECTOR dir = DirectX::XMLoadFloat3(&sun.direction);
+			dir = DirectX::XMVector2Normalize(dir);
+
+			DirectX::XMVECTOR target = DirectX::XMVectorSet(0, 0, 0, 1);
+			DirectX::XMVECTOR eye = DirectX::XMVectorSet(
+				-DirectX::XMVectorGetX(dir) * 20.0f,
+				-DirectX::XMVectorGetY(dir) * 20.0f,
+				-DirectX::XMVectorGetZ(dir) * 20.0f,
+				1.0f);
+
+			DirectX::XMVECTOR up = DirectX::XMVectorSet(0, 1, 0, 0);
+			if (fabsf(DirectX::XMVectorGetY(dir)) > 0.95f)
+				up = DirectX::XMVectorSet(0, 0, 1, 0);
+
+			DirectX::XMMATRIX lightView = DirectX::XMMatrixLookAtLH(eye, target, up);
+			DirectX::XMMATRIX lightProj = DirectX::XMMatrixOrthographicLH(40.0f, 40.0f, 0.0f, 100.0f);
+			DirectX::XMMATRIX lightViewProj = lightView * lightProj;
+
+			if (m_shadowEffect)
+			{
+				
+				EffectContext shadowFx{};
+				shadowFx.device = device();
+				shadowFx.context = context();
+				shadowFx.camera = nullptr;
+				shadowFx.directionalLight = nullptr;
+				shadowFx.useViewProjOverride = true;
+				shadowFx.viewProjOverride = lightViewProj;
+
+				m_shadowMap->begin(context());
+				m_MeshManager->renderAllWithOverrideEffect(*m_shadowEffect, shadowFx, "ScreenQuad");
+				m_shadowMap->end(context());
+			}
 			// ====================================================//
 			// Stage 1: Render world-space meshes to offscreen RT
 			// ===================================================//
-			this->m_renderTargetManager->beginRender(0, 
+			this->m_renderTargetManager->beginRender(
+				0, 
 				m_MainRenderer->getContext(), 
 				*this->m_renderViewport, 
 				this->m_MainRenderer->getDepthBuffer()->getDepthStencilView());
@@ -147,6 +216,9 @@ namespace AlbinoEngine
 			{
 				EffectContext sceneFX = m_Scene->buildEffectContext(*this);
 				sceneFX.directionalLight = &m_lightManager->getDirectionalLight();
+				sceneFX.shadowMap = m_shadowMap.get();
+				sceneFX.lightViewProjection = lightViewProj;
+
 				m_MeshManager->renderAllExceptEffect(*m_effectManager, sceneFX, "ScreenQuad");
 			}
 				//m_Scene->render(*this);
@@ -163,6 +235,8 @@ namespace AlbinoEngine
 			quadFX.context = this->context();
 			quadFX.camera = nullptr;
 			quadFX.directionalLight = nullptr;
+			quadFX.shadowMap = nullptr;
+
 			m_MeshManager->renderOnlyEffect(*m_effectManager, quadFX, "ScreenQuad");
 
 			// Unbind SRV used by fullscreen pass to avoid next-frame RTV/SRV
