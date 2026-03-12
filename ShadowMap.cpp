@@ -53,6 +53,23 @@ namespace AlbinoEngine
 		if (FAILED(hr))
 			return false;
 
+		D3D11_SAMPLER_DESC sampDesc{};
+		sampDesc.Filter = D3D11_FILTER_COMPARISON_MIN_LINEAR_MAG_MIP_POINT;
+		sampDesc.AddressU = D3D11_TEXTURE_ADDRESS_BORDER;
+		sampDesc.AddressV = D3D11_TEXTURE_ADDRESS_BORDER;
+		sampDesc.AddressW = D3D11_TEXTURE_ADDRESS_BORDER;
+		sampDesc.BorderColor[0] = 1.0f;
+		sampDesc.BorderColor[1] = 1.0f;
+		sampDesc.BorderColor[2] = 1.0f;
+		sampDesc.BorderColor[3] = 1.0f;
+		sampDesc.ComparisonFunc = D3D11_COMPARISON_LESS_EQUAL;
+		sampDesc.MinLOD = 0.0f;
+		sampDesc.MaxLOD = D3D11_FLOAT32_MAX;
+
+		hr = m_device->CreateSamplerState(&sampDesc, m_comparisonSampler.ReleaseAndGetAddressOf());
+
+		if (FAILED(hr))
+			return false;
 		return true;
 	}
 

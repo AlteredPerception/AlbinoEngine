@@ -64,33 +64,26 @@ VS_OUTPUT vs_main(VS_INPUT input)
 Texture2D diffuseTex : register(t0);
 SamplerState diffuseSampler : register(s0);
 
-Texture2D<float> shadowMap : register(t1);
+Texture2D shadowMap : register(t1);
+SamplerComparisonState shadowSampler : register(s1);
 
 float computeShadow(float4 shadowPos)
 {
-   float3 proj = shadowPos.xyz / shadowPos.w;
-   
-   // NDC [-1 ,1] -> UV [0,1]
-   float2 uv = proj.xy * 0.5f + 0.5f; 
-   uv.y = 1.0f - uv.y;
-   uv = saturate(uv);
+    float3 proj = shadowPos.xyz / shadowPos.w;
 
-   float depth = proj.z;
-   
-    if (uv.x < 0.0f || uv.x > 1.0f || uv.y < 0.0f || uv.y > 1.0f || depth < 0.0f || depth > 1.0f)
+    float2 uv = proj.xy * 0.5f + 0.5f;
+    uv.y = 1.0f - uv.y;
+
+    float depth = proj.z;
+
+    if (uv.x < 0 || uv.x > 1 || uv.y < 0 || uv.y > 1)
         return 1.0f;
 
-    uint w, h;
-    shadowMap.GetDimensions(w,h);
-
-    int2 texel = int2(uv * float2(w, h);
-    
-    float shadowDepth = shadowMap.Load(int3(texel, 0));
-	
-    float currentDepth = depth - shadowBias; 
-
-    return (currentDepth <= shadowDepth) ? 1.0f : 0.25;
-	
+    return shadowMap.SampleCmpLevelZero(
+        shadowSampler,
+        uv,
+        depth - shadowBias
+    );
 }
 
 float4 ps_main(VS_OUTPUT input) : SV_TARGET

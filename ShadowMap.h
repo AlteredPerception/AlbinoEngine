@@ -18,7 +18,7 @@ namespace AlbinoEngine
 
 		ID3D11DepthStencilView* getDSV() const { return m_dsv.Get(); }
 		ID3D11ShaderResourceView* getSRV() const { return m_srv.Get(); }
-
+		ID3D11SamplerState* getComparisonSampler() const { return this->m_comparisonSampler.Get(); }
 		UINT getWidth() const { return m_width; }
 		UINT getHeight() const { return m_height; }
 	protected:
@@ -29,6 +29,7 @@ namespace AlbinoEngine
 		Microsoft::WRL::ComPtr<ID3D11Texture2D> m_texture;
 		Microsoft::WRL::ComPtr<ID3D11DepthStencilView> m_dsv;
 		Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> m_srv;
+		Microsoft::WRL::ComPtr<ID3D11SamplerState> m_comparisonSampler;
 
 		D3D11_VIEWPORT m_viewport{};
 

@@ -223,6 +223,9 @@ namespace AlbinoEngine
 		{
 			ID3D11ShaderResourceView* shadowSrv = fx.shadowMap->getSRV();
 			fx.context->PSSetShaderResources(1, 1, &shadowSrv);
+
+			ID3D11SamplerState* shadowSampler = fx.shadowMap->getComparisonSampler();
+			fx.context->PSSetSamplers(1, 1, &shadowSampler);
 		}
 	}
 
