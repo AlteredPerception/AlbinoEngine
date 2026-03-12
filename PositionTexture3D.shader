@@ -108,7 +108,8 @@ float4 ps_main(VS_OUTPUT input) : SV_TARGET
 
    float3 finalColor = ambient + (diffuse + specular) * shadow;
 
-   return float4(finalColor, albedo.a);
+   //return float4(finalColor, albedo.a);
+   return float4(shadow, shadow, shadow, 1.0f);
 }
 
 float4 ps_main_uv(VS_OUTPUT input) : SV_TARGET

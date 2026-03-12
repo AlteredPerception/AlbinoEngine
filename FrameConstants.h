@@ -19,7 +19,7 @@ namespace AlbinoEngine
 
 		DirectX::XMMATRIX lightViewProjection = DirectX::XMMatrixIdentity();
 
-		float shadowBias = 0.0015f;
+		float shadowBias = 0.01f;
 		DirectX::XMFLOAT3 padding1 = { 0.0f,0.0f,0.0f };
 	};
 }
