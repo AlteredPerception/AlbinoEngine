@@ -129,8 +129,18 @@ namespace AlbinoEngine
 		auto& tech = m_shadowEffect->createTechnique("shadow_depth");
 		m_shadowEffect->setActiveTechnique("shadow_depth");
 
+		D3D11_RASTERIZER_DESC shadowRS{};
+		shadowRS.FillMode = D3D11_FILL_SOLID;
+		shadowRS.CullMode = D3D11_CULL_BACK;
+		shadowRS.DepthClipEnable = TRUE;
+		shadowRS.DepthBias = 1000;
+		shadowRS.SlopeScaledDepthBias = 1.0f;
+		shadowRS.DepthBiasClamp = 0.0f;
+		
+		this->device()->CreateRasterizerState(&shadowRS, m_shadowRaster.ReleaseAndGetAddressOf());
 		auto shadowPass = std::make_unique<Pass>(m_shadowVS, std::shared_ptr<PixelShader>{});
 		shadowPass->name = "ShadowDepth";
+		shadowPass->setRasterizerState(m_shadowRaster.Get());
 		if (!shadowPass->buildInputLayout(device()))
 			return;
 
@@ -184,7 +194,7 @@ namespace AlbinoEngine
 				up = DirectX::XMVectorSet(0, 0, 1, 0);
 
 			DirectX::XMMATRIX lightView = DirectX::XMMatrixLookAtLH(eye, target, up);
-			DirectX::XMMATRIX lightProj = DirectX::XMMatrixOrthographicLH(40.0f, 40.0f, 0.0f, 100.0f);
+			DirectX::XMMATRIX lightProj = DirectX::XMMatrixOrthographicLH(20.0f, 20.0f, 1.0f, 50.0f);
 			DirectX::XMMATRIX lightViewProj = lightView * lightProj;
 			ID3D11ShaderResourceView* nullShadowSRV[1] = { nullptr };
 			context()->PSSetShaderResources(1, 1, nullShadowSRV);

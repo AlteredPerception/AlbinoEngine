@@ -81,6 +81,7 @@ namespace AlbinoEngine
 		std::shared_ptr<PixelShader> m_screenPS;
 
 		Microsoft::WRL::ComPtr<ID3D11RasterizerState> m_screenRaster;
+		Microsoft::WRL::ComPtr<ID3D11RasterizerState> m_shadowRaster;
 		Microsoft::WRL::ComPtr<ID3D11DepthStencilState> m_screenDepthDIsabled;
 
 		// Shadow pass
