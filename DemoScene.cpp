@@ -192,6 +192,7 @@ bool DemoScene::initialize(AlbinoEngine::Engine& engine)
     AlbinoEngine::Mesh* cube = engine.getMeshManager().createMesh(cubeName, cubeType);
     AlbinoEngine::Mesh* cube2 = engine.getMeshManager().createMesh(L"cube 2", L"cubeMesh");
     AlbinoEngine::Mesh* plane = engine.getMeshManager().createMesh(L"planeMesh", L"planeMesh");
+    plane->setCastShadows(false);
     AlbinoEngine::CubeMesh* cubeMesh = reinterpret_cast<AlbinoEngine::CubeMesh*>(cube);
     AlbinoEngine::CubeMesh* cubeMesh2 = reinterpret_cast<AlbinoEngine::CubeMesh*>(cube2);
     AlbinoEngine::PlaneMesh* planeMesh = reinterpret_cast<AlbinoEngine::PlaneMesh*>(plane);
@@ -200,7 +201,6 @@ bool DemoScene::initialize(AlbinoEngine::Engine& engine)
     engine.getMeshManager().setMeshEffect(L"cube 2", "BasicEffect", "tech2");
     engine.getMeshManager().setMeshEffect(L"planeMesh", "BasicEffect", "tech2");
 
-    planeMesh->setCastShadows(false);
     planeMesh->setProperties(50.0f, 50.0f, 1.0f, 50.0f, 50.0f);
     planeMesh->initialize();
     

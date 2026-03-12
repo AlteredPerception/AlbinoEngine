@@ -112,7 +112,7 @@ float computeShadow(float4 shadowPos)
     float shadowDepth = shadowMap.Load(int3(texel, 0)).r;
     float currentDepth = depth - shadowBias;
 
-    return (currentDepth <= shadowDepth) ? 1.0f : 0.5f;
+    return (currentDepth <= shadowDepth) ? 1.0f : 0.0f;
 }
 
 float4 ps_main(VS_OUTPUT input) : SV_TARGET
