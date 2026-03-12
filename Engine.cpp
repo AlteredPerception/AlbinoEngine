@@ -180,23 +180,8 @@ namespace AlbinoEngine
 			// Unbind previous frame's shadow SRV
 			
 			DirectionalLight sun = m_lightManager->getDirectionalLight();
-			DirectX::XMVECTOR dir = DirectX::XMLoadFloat3(&sun.direction);
-			dir = DirectX::XMVector3Normalize(dir);
-
-			DirectX::XMVECTOR target = DirectX::XMVectorSet(0, 0, 0, 1);
-			DirectX::XMVECTOR eye = DirectX::XMVectorSet(
-				-DirectX::XMVectorGetX(dir) * 20.0f,
-				-DirectX::XMVectorGetY(dir) * 20.0f,
-				-DirectX::XMVectorGetZ(dir) * 20.0f,
-				1.0f);
-
-			DirectX::XMVECTOR up = DirectX::XMVectorSet(0, 1, 0, 0);
-			if (fabsf(DirectX::XMVectorGetY(dir)) > 0.95f)
-				up = DirectX::XMVectorSet(0, 0, 1, 0);
-
-			DirectX::XMMATRIX lightView = DirectX::XMMatrixLookAtLH(eye, target, up);
-			DirectX::XMMATRIX lightProj = DirectX::XMMatrixOrthographicLH(12.0f, 12.0f, 1.0f, 40.0f);
-			DirectX::XMMATRIX lightViewProj = lightView * lightProj;
+		
+			
 			ID3D11ShaderResourceView* nullShadowSRV[1] = { nullptr };
 			context()->PSSetShaderResources(1, 1, nullShadowSRV);
 			if (m_shadowEffect)
@@ -226,6 +211,23 @@ namespace AlbinoEngine
 			if (m_Scene)
 			{
 				EffectContext sceneFX = m_Scene->buildEffectContext(*this);
+				
+				DirectX::XMVECTOR lightDir = DirectX::XMVector3Normalize(DirectX::XMLoadFloat3(&sun.direction));
+
+				DirectX::XMVECTOR target = DirectX::XMVectorSet(0, 0, 0, 1);
+				//DirectX::XMVECTOR eye = DirectX::XMVectorSet(
+				//	-DirectX::XMVectorGetX(lightDir) * 20.0f,
+				//	-DirectX::XMVectorGetY(lightDir) * 20.0f,
+				//	-DirectX::XMVectorGetZ(lightDir) * 20.0f,
+				//	1.0f);
+
+				DirectX::XMVECTOR up = DirectX::XMVectorSet(0, 1, 0, 0);
+				if (fabsf(DirectX::XMVectorGetY(lightDir)) > 0.95f)
+					up = DirectX::XMVectorSet(0, 0, 1, 0);
+
+				DirectX::XMMATRIX lightView = DirectX::XMMatrixLookAtLH(eye, target, up);
+				DirectX::XMMATRIX lightProj = DirectX::XMMatrixOrthographicLH(12.0f, 12.0f, 1.0f, 40.0f);
+				DirectX::XMMATRIX lightViewProj = lightView * lightProj;
 				sceneFX.directionalLight = &m_lightManager->getDirectionalLight();
 				sceneFX.shadowMap = m_shadowMap.get();
 				sceneFX.lightViewProjection = lightViewProj;
