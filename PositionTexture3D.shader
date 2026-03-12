@@ -96,7 +96,7 @@ float4 ps_main(VS_OUTPUT input) : SV_TARGET
    float3 H = normalize(L + V);
 
    float NdotL = saturate(dot(N,L));
-   float NdotH = saturate(dot(N,V));
+   float NdotH = saturate(dot(N,H));
 
    float shadow = computeShadow(input.shadowPos);
 

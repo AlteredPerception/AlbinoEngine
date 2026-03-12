@@ -180,7 +180,7 @@ namespace AlbinoEngine
 			
 			DirectionalLight sun = m_lightManager->getDirectionalLight();
 			DirectX::XMVECTOR dir = DirectX::XMLoadFloat3(&sun.direction);
-			dir = DirectX::XMVector2Normalize(dir);
+			dir = DirectX::XMVector3Normalize(dir);
 
 			DirectX::XMVECTOR target = DirectX::XMVectorSet(0, 0, 0, 1);
 			DirectX::XMVECTOR eye = DirectX::XMVectorSet(
