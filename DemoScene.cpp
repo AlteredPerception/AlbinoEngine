@@ -201,10 +201,10 @@ bool DemoScene::initialize(AlbinoEngine::Engine& engine)
     engine.getMeshManager().setMeshEffect(L"cube 2", "BasicEffect", "tech2");
     engine.getMeshManager().setMeshEffect(L"planeMesh", "BasicEffect", "tech2");
 
-    planeMesh->setProperties(50.0f, 50.0f, 1.0f, 50.0f, 50.0f);
+    planeMesh->setProperties(10.0f, 10.0f, 1.0f, 10.0f, 10.0f);
     planeMesh->initialize();
     
-    planeMesh->setPosition(0, -2, 0);
+    planeMesh->setPosition(0, -1, 0);
     planeMesh->setScale(100, 0.25, 100);
     planeMesh->setRotation(0, 0, 0);
     //cubeMesh2->initliaze();
@@ -263,7 +263,7 @@ void DemoScene::update(AlbinoEngine::Engine& engine, float dt)
     if (keyDown(VK_ESCAPE))
         PostQuitMessage(0);
 
-    const float speed = 10.0f;
+    const float speed = 30.0f;
     float xRot = cubeMesh->getMeshRotation().x;
     float yRot = cubeMesh->getMeshRotation().y;
     float zRot = cubeMesh->getMeshRotation().z;

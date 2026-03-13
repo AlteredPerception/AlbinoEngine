@@ -35,7 +35,7 @@ namespace AlbinoEngine
 			static_cast<float>(height),
 			0.0f,1.0f);
 
-		m_renderViewport->setViewportColor(0.0f, 0.0f, 0.0f, 1.0f);
+		m_renderViewport->setViewportColor(0.0f, 0.5f, 0.0f, 1.0f);
 
 		m_renderTargetManager = std::make_unique<RenderTargetManager>(m_MainRenderer->getDevice());
 		m_renderTargetManager->createRenderTarget(width, height);
@@ -147,6 +147,7 @@ namespace AlbinoEngine
 		shadowPass->setRasterizerState(m_shadowRaster.Get());
 		tech.addPass(std::move(shadowPass));
 	}
+
 	int Engine::run()
 	{
 		LARGE_INTEGER freq;
@@ -167,26 +168,59 @@ namespace AlbinoEngine
 			if (m_Scene)
 				m_Scene->update(*this, dt);
 
-			// Keep viewport with current window size.
-			m_renderViewport->setViewport(0.0f, 0.0f, 
-				static_cast<float>(m_MainWindow->getWidth()), 
-				static_cast<float>(m_MainWindow->getHeight()), 
+			m_renderViewport->setViewport(
+				0.0f, 0.0f,
+				static_cast<float>(m_MainWindow->getWidth()),
+				static_cast<float>(m_MainWindow->getHeight()),
 				0.0f, 1.0f);
-			
+
+			DirectionalLight sun = m_lightManager->getDirectionalLight();
+
+			// Build light matrices ONCE per frame, before both passes
+			DirectX::XMMATRIX lightViewProj = DirectX::XMMatrixIdentity();
+
+			if (m_Scene)
+			{
+				EffectContext tempFX = m_Scene->buildEffectContext(*this);
+
+				if (tempFX.camera)
+				{
+					DirectX::XMVECTOR camPos =
+						DirectX::XMLoadFloat3(&tempFX.camera->getCameraPosition());
+
+					DirectX::XMVECTOR lightDir =
+						DirectX::XMVector3Normalize(
+							DirectX::XMLoadFloat3(&sun.direction));
+
+					DirectX::XMVECTOR lightPos =
+						DirectX::XMVectorSubtract(
+							camPos,
+							DirectX::XMVectorScale(lightDir, 20.0f));
+
+					DirectX::XMVECTOR target = camPos;
+
+					DirectX::XMVECTOR up = DirectX::XMVectorSet(0, 1, 0, 0);
+					if (fabsf(DirectX::XMVectorGetY(lightDir)) > 0.95f)
+						up = DirectX::XMVectorSet(0, 0, 1, 0);
+
+					DirectX::XMMATRIX lightView =
+						DirectX::XMMatrixLookAtLH(lightPos, target, up);
+
+					DirectX::XMMATRIX lightProj =
+						DirectX::XMMatrixOrthographicLH(20.0f, 20.0f, 1.0f, 50.0f);
+
+					lightViewProj = lightView * lightProj;
+				}
+			}
+
 			// ===================================================== //
 			// Stage 0: Shadow map pass
 			// ===================================================== //
-
-			// Unbind previous frame's shadow SRV
-			
-			DirectionalLight sun = m_lightManager->getDirectionalLight();
-		
-			
 			ID3D11ShaderResourceView* nullShadowSRV[1] = { nullptr };
 			context()->PSSetShaderResources(1, 1, nullShadowSRV);
+
 			if (m_shadowEffect)
 			{
-				
 				EffectContext shadowFx{};
 				shadowFx.device = device();
 				shadowFx.context = context();
@@ -199,67 +233,49 @@ namespace AlbinoEngine
 				m_MeshManager->renderAllWithOverrideEffect(*m_shadowEffect, shadowFx, "ScreenQuad");
 				m_shadowMap->end(context());
 			}
-			// ====================================================//
+
+			// ===================================================== //
 			// Stage 1: Render world-space meshes to offscreen RT
-			// ===================================================//
-			this->m_renderTargetManager->beginRender(
-				0, 
-				m_MainRenderer->getContext(), 
-				*this->m_renderViewport, 
-				this->m_MainRenderer->getDepthBuffer()->getDepthStencilView());
+			// ===================================================== //
+			m_renderTargetManager->beginRender(
+				0,
+				m_MainRenderer->getContext(),
+				*m_renderViewport,
+				m_MainRenderer->getDepthBuffer()->getDepthStencilView());
 
 			if (m_Scene)
 			{
 				EffectContext sceneFX = m_Scene->buildEffectContext(*this);
-				
-				DirectX::XMVECTOR lightDir = DirectX::XMVector3Normalize(DirectX::XMLoadFloat3(&sun.direction));
-
-				DirectX::XMVECTOR target = DirectX::XMVectorSet(0, 0, 0, 1);
-				//DirectX::XMVECTOR eye = DirectX::XMVectorSet(
-				//	-DirectX::XMVectorGetX(lightDir) * 20.0f,
-				//	-DirectX::XMVectorGetY(lightDir) * 20.0f,
-				//	-DirectX::XMVectorGetZ(lightDir) * 20.0f,
-				//	1.0f);
-
-				DirectX::XMVECTOR up = DirectX::XMVectorSet(0, 1, 0, 0);
-				if (fabsf(DirectX::XMVectorGetY(lightDir)) > 0.95f)
-					up = DirectX::XMVectorSet(0, 0, 1, 0);
-
-				DirectX::XMMATRIX lightView = DirectX::XMMatrixLookAtLH(eye, target, up);
-				DirectX::XMMATRIX lightProj = DirectX::XMMatrixOrthographicLH(12.0f, 12.0f, 1.0f, 40.0f);
-				DirectX::XMMATRIX lightViewProj = lightView * lightProj;
 				sceneFX.directionalLight = &m_lightManager->getDirectionalLight();
 				sceneFX.shadowMap = m_shadowMap.get();
 				sceneFX.lightViewProjection = lightViewProj;
 
 				m_MeshManager->renderAllExceptEffect(*m_effectManager, sceneFX, "ScreenQuad");
 			}
-				//m_Scene->render(*this);
-			
-			this->m_renderTargetManager->endRender(m_MainRenderer->getContext());
-			
-			// ======================================================= //
-			// Stage 2: Bind backbuffer and draw fullscreen quad only
-			// ======================================================= //
-			m_MainRenderer->beginFrame(0, 0, 0, 1.0);
 
-			EffectContext quadFX = {};
-			quadFX.device = this->device();
-			quadFX.context = this->context();
+			m_renderTargetManager->endRender(m_MainRenderer->getContext());
+
+			// ===================================================== //
+			// Stage 2: Bind backbuffer and draw fullscreen quad only
+			// ===================================================== //
+			m_MainRenderer->beginFrame(0, 0, 0, 1.0f);
+
+			EffectContext quadFX{};
+			quadFX.device = device();
+			quadFX.context = context();
 			quadFX.camera = nullptr;
 			quadFX.directionalLight = nullptr;
 			quadFX.shadowMap = nullptr;
 
 			m_MeshManager->renderOnlyEffect(*m_effectManager, quadFX, "ScreenQuad");
 
-			// Unbind SRV used by fullscreen pass to avoid next-frame RTV/SRV
 			ID3D11ShaderResourceView* nullSRV[1] = { nullptr };
 			m_MainRenderer->getContext()->PSSetShaderResources(0, 1, nullSRV);
 
 			if (m_Scene)
 				m_Scene->render(*this);
 
-			this->m_MainRenderer->present();
+			m_MainRenderer->present();
 		}
 
 		return EXIT_SUCCESS;

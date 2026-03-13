@@ -21,4 +21,6 @@ VS_OUTPUT vs_shadow(VS_INPUT input)
 {
    VS_OUTPUT output;
    output.position = mul(float4(input.position, 1.0f), worldViewProjection);
+
+   return output;
 }
