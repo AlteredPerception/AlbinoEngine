@@ -61,7 +61,7 @@ namespace AlbinoEngine
 		sun.intensity = 1.5f;
 		m_lightManager->setDirectionalLight(sun);
 
-		m_shadowMap = std::make_unique<ShadowMap>(m_MainRenderer->getDevice(), 2048, 2048);
+		m_shadowMap = std::make_unique<ShadowMap>(m_MainRenderer->getDevice(), 4096, 4096);
 		if (!m_shadowMap->initialize())
 			return false;
 		createScreenQuad();
@@ -185,29 +185,74 @@ namespace AlbinoEngine
 
 				if (tempFX.camera)
 				{
-					DirectX::XMVECTOR camPos =
-						DirectX::XMLoadFloat3(&tempFX.camera->getCameraPosition());
+					using namespace DirectX;
 
-					DirectX::XMVECTOR lightDir =
-						DirectX::XMVector3Normalize(
-							DirectX::XMLoadFloat3(&sun.direction));
+					const float lightDistance = 25.0f;
+					const float orthoWidth = 35.0f;
+					const float orthoHeight = 35.0f;
+					const float orthoNear = 1.0f;
+					const float orthoFar = 100.0f;
 
-					DirectX::XMVECTOR lightPos =
-						DirectX::XMVectorSubtract(
+					const float shadowMapWidth = static_cast<float>(m_shadowMap->getWidth());
+					const float shadowMapHeight = static_cast<float>(m_shadowMap->getHeight());
+
+					XMFLOAT3 camPosFloat = tempFX.camera->getCameraPosition();
+					XMVECTOR camPos = XMLoadFloat3(&camPosFloat);
+
+					XMVECTOR camForward = XMVector3Normalize(tempFX.camera->getForwardVector());
+
+					// Center the shadow volume in front of the camera
+					XMVECTOR focusPoint =
+						XMVectorAdd(
 							camPos,
-							DirectX::XMVectorScale(lightDir, 20.0f));
+							XMVectorScale(camForward, 15.0f));
 
-					DirectX::XMVECTOR target = camPos;
+					XMVECTOR lightDir =
+						XMVector3Normalize(
+							XMLoadFloat3(&sun.direction));
 
-					DirectX::XMVECTOR up = DirectX::XMVectorSet(0, 1, 0, 0);
-					if (fabsf(DirectX::XMVectorGetY(lightDir)) > 0.95f)
-						up = DirectX::XMVectorSet(0, 0, 1, 0);
+					XMVECTOR up = XMVectorSet(0, 1, 0, 0);
+					if (fabsf(XMVectorGetY(lightDir)) > 0.95f)
+						up = XMVectorSet(0, 0, 1, 0);
 
-					DirectX::XMMATRIX lightView =
-						DirectX::XMMatrixLookAtLH(lightPos, target, up);
+					XMVECTOR lightPos =
+						XMVectorSubtract(
+							focusPoint,
+							XMVectorScale(lightDir, lightDistance));
 
-					DirectX::XMMATRIX lightProj =
-						DirectX::XMMatrixOrthographicLH(20.0f, 20.0f, 1.0f, 50.0f);
+					XMMATRIX lightView = XMMatrixLookAtLH(lightPos, focusPoint, up);
+
+					// -------- Texel snapping --------
+					float worldUnitsPerTexelX = orthoWidth / shadowMapWidth;
+					float worldUnitsPerTexelY = orthoHeight / shadowMapHeight;
+
+					XMVECTOR focusLS = XMVector3TransformCoord(focusPoint, lightView);
+
+					float snappedX =
+						floorf(XMVectorGetX(focusLS) / worldUnitsPerTexelX) * worldUnitsPerTexelX;
+
+					float snappedY =
+						floorf(XMVectorGetY(focusLS) / worldUnitsPerTexelY) * worldUnitsPerTexelY;
+
+					XMVECTOR snappedFocusLS = XMVectorSet(
+						snappedX,
+						snappedY,
+						XMVectorGetZ(focusLS),
+						1.0f);
+
+					XMMATRIX invLightView = XMMatrixInverse(nullptr, lightView);
+					XMVECTOR snappedFocusWS = XMVector3TransformCoord(snappedFocusLS, invLightView);
+
+					lightPos =
+						XMVectorSubtract(
+							snappedFocusWS,
+							XMVectorScale(lightDir, lightDistance));
+
+					lightView = XMMatrixLookAtLH(lightPos, snappedFocusWS, up);
+					// --------------------------------
+
+					XMMATRIX lightProj =
+						XMMatrixOrthographicLH(orthoWidth, orthoHeight, orthoNear, orthoFar);
 
 					lightViewProj = lightView * lightProj;
 				}

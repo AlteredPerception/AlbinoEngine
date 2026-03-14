@@ -263,7 +263,7 @@ void DemoScene::update(AlbinoEngine::Engine& engine, float dt)
     if (keyDown(VK_ESCAPE))
         PostQuitMessage(0);
 
-    const float speed = 30.0f;
+    const float speed = 5.0f;
     float xRot = cubeMesh->getMeshRotation().x;
     float yRot = cubeMesh->getMeshRotation().y;
     float zRot = cubeMesh->getMeshRotation().z;
@@ -271,10 +271,10 @@ void DemoScene::update(AlbinoEngine::Engine& engine, float dt)
     yRot += speed * dt;
     zRot *= speed * dt;
     // Movement
-    if (keyDown(VK_UP))    m_camera->moveForward(speed * dt);
-    if (keyDown(VK_DOWN))  m_camera->moveBackwards(speed * dt);
-    if (keyDown(VK_LEFT))  m_camera->moveLeft(speed * dt);
-    if (keyDown(VK_RIGHT)) m_camera->moveRight(speed * dt);
+    if (keyDown(VK_UP) || keyDown('W'))    m_camera->moveForward(speed * dt);
+    if (keyDown(VK_DOWN) || keyDown('S'))  m_camera->moveBackwards(speed * dt);
+    if (keyDown(VK_LEFT) || keyDown('A'))  m_camera->moveLeft(speed * dt);
+    if (keyDown(VK_RIGHT) || keyDown('D')) m_camera->moveRight(speed * dt);
     if (keyDown(VK_SPACE)) m_camera->moveUp(speed * dt);
     if (keyDown('R')) m_camera->setCameraPosition(0, 0, -3);
     cubeMesh->setRotation(xRot, yRot, zRot);

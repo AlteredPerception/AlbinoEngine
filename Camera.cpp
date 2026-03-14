@@ -170,10 +170,12 @@ namespace AlbinoEngine
 	DirectX::XMVECTOR Camera::getForwardVector() const
 	{
 		using namespace DirectX;
-		// Forward in LH is +Z by convention
+
 		XMVECTOR forward = XMVectorSet(0, 0, 1, 0);
 		XMMATRIX rot = XMMatrixRotationRollPitchYaw(
-			m_pCameraRotation.x, m_pCameraRotation.y, m_pCameraRotation.z);
+			m_pCameraRotation.x,
+			m_pCameraRotation.y,
+			m_pCameraRotation.z);
 
 		return XMVector3Normalize(XMVector3TransformNormal(forward, rot));
 	}

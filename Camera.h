@@ -50,7 +50,7 @@ namespace AlbinoEngine
 
 		DirectX::XMVECTOR getForwardVector() const;
 		DirectX::XMVECTOR getRightVector() const;
-
+		
 
 		DirectX::XMMATRIX getViewMatrix() const;
 

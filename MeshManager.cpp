@@ -153,13 +153,13 @@ namespace AlbinoEngine
 
 			if (!entry.second.mesh->getCastShadows())
 			{
-				std::wstring msg = L"Skipping shadow caster: " + entry.first + L"\n";
-				OutputDebugString(msg.c_str());
+			//	std::wstring msg = L"Skipping shadow caster: " + entry.first + L"\n";
+			//	OutputDebugString(msg.c_str());
 				continue;
 			}
 			
-			std::wstring msg = L"Shadow caster: " + entry.first + L"\n";
-			OutputDebugString(msg.c_str());
+			//std::wstring msg = L"Shadow caster: " + entry.first + L"\n";
+			//OutputDebugString(msg.c_str());
 
 			effect.render(fx, *entry.second.mesh);
 		}

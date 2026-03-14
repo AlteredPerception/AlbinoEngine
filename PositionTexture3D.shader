@@ -65,26 +65,22 @@ Texture2D diffuseTex : register(t0);
 SamplerState diffuseSampler : register(s0);
 
 Texture2D shadowMap : register(t1);
-SamplerComparisonState shadowSampler : register(s1);
 
-//float computeShadow(float4 shadowPos)
-//{
-//    float3 proj = shadowPos.xyz / shadowPos.w;
+float hash12(float2 p)
+{
+    float h = dot(p, float2(127.1, 311.7));
+    return frac(sin(h) * 43758.5453123);
+}
 
-//    float2 uv = proj.xy * 0.5f + 0.5f;
-//    uv.y = 1.0f - uv.y;
-
-//    float depth = proj.z;
-
-//    if (uv.x < 0 || uv.x > 1 || uv.y < 0 || uv.y > 1)
-//        return 1.0f;
-
-//    return shadowMap.SampleCmpLevelZero(
-//        shadowSampler,
-//        uv,
-//        depth - shadowBias
-//    );
-//}
+float2 rotate2(float2 v, float angle)
+{
+    float s = sin(angle);
+    float c = cos(angle);
+    return float2(
+        c * v.x - s * v.y,
+        s * v.x + c * v.y
+    );
+}
 
 float computeShadow(float4 shadowPos)
 {
@@ -106,13 +102,40 @@ float computeShadow(float4 shadowPos)
     uint w, h;
     shadowMap.GetDimensions(w, h);
 
-    int2 texel = int2(uv * float2(w, h));
-    texel = clamp(texel, int2(0, 0), int2((int)w - 1, (int)h - 1));
-
-    float shadowDepth = shadowMap.Load(int3(texel, 0)).r;
+    float2 texelSize = 1.0f / float2(w, h);
     float currentDepth = depth - shadowBias;
 
-    return (currentDepth <= shadowDepth) ? 1.0f : 0.0f;
+    // Small per-pixel rotation to reduce visible grid pattern
+    float angle = hash12(floor(uv * float2(w, h))) * 6.2831853f;
+
+    float shadow = 0.0f;
+
+    [unroll]
+    for (int y = -2; y <= 2; ++y)
+    {
+        [unroll]
+        for (int x = -2; x <= 2; ++x)
+        {
+            float2 baseOffset = float2((float)x, (float)y);
+            float2 rotatedOffset = rotate2(baseOffset, angle) * texelSize;
+
+            float2 sampleUV = uv + rotatedOffset;
+
+            if (sampleUV.x < 0.0f || sampleUV.x > 1.0f || sampleUV.y < 0.0f || sampleUV.y > 1.0f)
+            {
+                shadow += 1.0f;
+                continue;
+            }
+
+            int2 texel = int2(sampleUV * float2(w, h));
+            texel = clamp(texel, int2(0, 0), int2((int)w - 1, (int)h - 1));
+
+            float shadowDepth = shadowMap.Load(int3(texel, 0)).r;
+            shadow += (currentDepth <= shadowDepth) ? 1.0f : 0.0f;
+        }
+    }
+
+    return shadow / 25.0f;
 }
 
 float4 ps_main(VS_OUTPUT input) : SV_TARGET
@@ -128,6 +151,9 @@ float4 ps_main(VS_OUTPUT input) : SV_TARGET
    float NdotH = saturate(dot(N,H));
 
    float shadow = computeShadow(input.shadowPos);
+
+   float shadowStrength = 0.85f;
+   shadow = lerp(1.0f, shadow, shadowStrength);
 
    float3 ambient = albedo.rgb * ambientStrength;
    float3 diffuse = albedo.rgb * lightColor * NdotL * lightIntensity;

@@ -1,0 +1,173 @@
+//SamplerComparisonState shadowSampler : register(s1);
+
+//float computeShadow(float4 shadowPos)
+//{
+//    float3 proj = shadowPos.xyz / shadowPos.w;
+
+//    float2 uv = proj.xy * 0.5f + 0.5f;
+//    uv.y = 1.0f - uv.y;
+
+//    float depth = proj.z;
+
+//    if (uv.x < 0 || uv.x > 1 || uv.y < 0 || uv.y > 1)
+//        return 1.0f;
+
+//    return shadowMap.SampleCmpLevelZero(
+//        shadowSampler,
+//        uv,
+//        depth - shadowBias
+//    );
+//}
+
+//float computeShadow(float4 shadowPos)
+//{
+//    if (abs(shadowPos.w) < 0.0001f)
+//        return 1.0f;
+
+//    float3 proj = shadowPos.xyz / shadowPos.w;
+
+    // NDC [-1, 1] -> UV [0, 1]
+//    float2 uv = proj.xy * 0.5f + 0.5f;
+//    uv.y = 1.0f - uv.y;
+
+//    float depth = proj.z;
+
+    // Outside shadow map = lit
+//    if (uv.x < 0.0f || uv.x > 1.0f || uv.y < 0.0f || uv.y > 1.0f || depth < 0.0f || depth > 1.0f)
+//        return 1.0f;
+
+//    uint w, h;
+//    shadowMap.GetDimensions(w, h);
+
+//    int2 texel = int2(uv * float2(w, h));
+//    texel = clamp(texel, int2(0, 0), int2((int)w - 1, (int)h - 1));
+
+//    float shadowDepth = shadowMap.Load(int3(texel, 0)).r;
+//    float currentDepth = depth - shadowBias;
+
+//    return (currentDepth <= shadowDepth) ? 1.0f : 0.0f;
+//}
+
+//float hash12(float2 p)
+//{
+//   float h = dot(p, float2(127.1, 311.7);
+//   return frac(sin(h) * 43758.5453123);
+//}
+
+//float2 rotate2(float2 v, float angle)
+//{
+//   float s = sin(angle);
+//   float c = cos(angle);
+//   return float2(
+//      c * v.x - s * v.y,
+//      s * v.x - c * v.y
+//   );
+//}
+
+//float computeShadow(float4 shadowPos)
+//{
+//    if (abs(shadowPos.w) < 0.0001f)
+//        return 1.0f;
+
+//    float3 proj = shadowPos.xyz / shadowPos.w;
+
+    // NDC [-1, 1] -> UV [0, 1]
+//    float2 uv = proj.xy * 0.5f + 0.5f;
+//    uv.y = 1.0f - uv.y;
+
+//    float depth = proj.z;
+
+    // Outside shadow map = lit
+//    if (uv.x < 0.0f || uv.x > 1.0f || uv.y < 0.0f || uv.y > 1.0f || depth < 0.0f || depth > 1.0f)
+//        return 1.0f;
+
+//    uint w, h;
+//    shadowMap.GetDimensions(w, h);
+
+//    float2 texelSize = 1.0f / float2(w, h);
+//    float currentDepth = depth - shadowBias;
+
+    // Small per-pixel rotation to reduce visible grid pattern
+//    float angle = hash12(floor(uv * float2(w, h))) * 6.2831853f;
+
+//    float shadow = 0.0f;
+
+//    [unroll]
+//    for (int y = -2; y <= 2; ++y)
+//    {
+//        [unroll]
+//        for (int x = -2; x <= 2; ++x)
+//        {
+//            float2 baseOffset = float2((float)x, (float)y);
+//            float2 rotatedOffset = rotate2(baseOffset, angle) * texelSize;
+
+//            float2 sampleUV = uv + rotatedOffset;
+
+//            if (sampleUV.x < 0.0f || sampleUV.x > 1.0f || sampleUV.y < 0.0f || sampleUV.y > 1.0f)
+//            {
+//                shadow += 1.0f;
+//                continue;
+//            }
+
+//            int2 texel = int2(sampleUV * float2(w, h));
+//            texel = clamp(texel, int2(0, 0), int2((int)w - 1, (int)h - 1));
+
+//            float shadowDepth = shadowMap.Load(int3(texel, 0)).r;
+//            shadow += (currentDepth <= shadowDepth) ? 1.0f : 0.0f;
+//        }
+//    }
+
+//    return shadow / 25.0f;
+//}
+
+float computeShadow(float4 shadowPos)
+{
+    if (abs(shadowPos.w) < 0.0001f)
+        return 1.0f;
+
+    float3 proj = shadowPos.xyz / shadowPos.w;
+
+    // NDC [-1, 1] -> UV [0, 1]
+    float2 uv = proj.xy * 0.5f + 0.5f;
+    uv.y = 1.0f - uv.y;
+
+    float depth = proj.z;
+
+    // Outside shadow map = lit
+    if (uv.x < 0.0f || uv.x > 1.0f || uv.y < 0.0f || uv.y > 1.0f || depth < 0.0f || depth > 1.0f)
+        return 1.0f;
+
+    uint w, h;
+    shadowMap.GetDimensions(w, h);
+
+    float2 texelSize = 1.0f / float2(w, h);
+
+    float currentDepth = depth - shadowBias;
+
+    float shadow = 0.0f;
+
+    [unroll]
+    for (int y = -1; y <= 1; ++y)
+    {
+        [unroll]
+        for (int x = -1; x <= 1; ++x)
+        {
+            float2 sampleUV = uv + float2(x, y) * texelSize;
+
+            // treat samples outside map as lit
+            if (sampleUV.x < 0.0f || sampleUV.x > 1.0f || sampleUV.y < 0.0f || sampleUV.y > 1.0f)
+            {
+                shadow += 1.0f;
+                continue;
+            }
+
+            int2 texel = int2(sampleUV * float2(w, h));
+            texel = clamp(texel, int2(0, 0), int2((int)w - 1, (int)h - 1));
+
+            float shadowDepth = shadowMap.Load(int3(texel, 0)).r;
+            shadow += (currentDepth <= shadowDepth) ? 1.0f : 0.0f;
+        }
+    }
+
+    return shadow / 9.0f;
+}
