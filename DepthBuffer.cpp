@@ -9,10 +9,10 @@ namespace AlbinoEngine
 
 	DepthBuffer::~DepthBuffer()
 	{
-		if (m_pDepthStencil)
-		{
-			m_pDepthStencil.Reset();
-		}
+		this->m_pDepthStencil.Reset();
+		this->m_pDepthStencilTexture.Reset();
+		this->m_pDepthStencilState.Reset();
+		this->m_pDepthRaster.Reset();
 	}
 
 	bool DepthBuffer::createDepthBuffer(UINT width, UINT height)

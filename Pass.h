@@ -31,6 +31,7 @@ namespace AlbinoEngine
 	public:
 		Pass(std::shared_ptr<VertexShader> vs, std::shared_ptr<PixelShader> ps);
 
+		~Pass();
 
 		bool buildInputLayout(ID3D11Device* device); // uses VS reflection
 

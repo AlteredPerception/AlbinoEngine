@@ -15,7 +15,22 @@ namespace AlbinoEngine
 		: m_vs(std::move(vs)), m_ps(std::move(ps))
 	{}
 
+	Pass::~Pass()
+	{
+		m_inputLayout.Reset();
+		m_cbPerObject.Reset();
+		m_cbFrameLighting.Reset();
 
+		m_rs = nullptr;
+		m_ds = nullptr;
+		m_bs = nullptr;
+
+		m_psSrvs.clear();
+		m_psSamplers.clear();
+
+		m_vs.reset();
+		m_ps.reset();
+	}
 	bool Pass::buildInputLayout(ID3D11Device* device)
 	{
 		if (!device || !m_vs) 
