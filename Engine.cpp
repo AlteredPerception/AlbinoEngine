@@ -14,7 +14,7 @@ namespace AlbinoEngine
 
 	Engine::~Engine()
 	{
-		shutDown();
+		this->shutDown();
 	}
 
 	bool Engine::initialize(const wchar_t* title, UINT width, UINT height)
@@ -73,21 +73,38 @@ namespace AlbinoEngine
 
 	void Engine::shutDown()
 	{
-		if (m_MainRenderer)
-		{
-			m_MainRenderer->destroy();
-		}
+		if (!m_MainRenderer && !m_MainWindow)
+			return;
+
+		if (m_Scene)
+			m_Scene->destroy();
 
 		m_Scene.reset();
+
 		m_shadowMap.reset();
+		m_shadowVS.reset();
+		m_screenVS.reset();
+		m_screenPS.reset();
+
+		m_shadowRaster.Reset();
+		m_screenRaster.Reset();
+		m_screenDepthDIsabled.Reset();
+
 		m_lightManager.reset();
 		m_effectManager.reset();
 		m_MeshManager.reset();
 		m_TextureManager.reset();
 		m_renderTargetManager.reset();
 		m_renderViewport.reset();
+
+		if (m_MainRenderer)
+		{
+			m_MainRenderer->destroy();
+		}
 		m_MainRenderer.reset();
 		m_MainWindow.reset();
+		
+	
 
 		m_Running = false;
 	}
@@ -322,7 +339,6 @@ namespace AlbinoEngine
 
 			m_MainRenderer->present();
 		}
-
 		return EXIT_SUCCESS;
 	}
 

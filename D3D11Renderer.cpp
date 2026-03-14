@@ -68,16 +68,42 @@ namespace AlbinoEngine
 		ReleaseInterface(backBuffer);
 	}
 
+	void D3D11Renderer::unbindEverything()
+	{
+		ID3D11RenderTargetView* nullRTV[1] = { nullptr };
+		m_pDevContext->OMSetRenderTargets(1, nullRTV, nullptr);
+
+		ID3D11ShaderResourceView* nullSRV[16] = {};
+		m_pDevContext->VSSetShaderResources(0, 16, nullSRV);
+		m_pDevContext->PSSetShaderResources(0, 16, nullSRV);
+
+		ID3D11SamplerState* nullSamplers[16] = {};
+		m_pDevContext->PSSetSamplers(0, 16, nullSamplers);
+		m_pDevContext->VSSetSamplers(0, 16, nullSamplers);
+
+		ID3D11Buffer* nullCBs[14] = {};
+		m_pDevContext->VSSetConstantBuffers(0, 14, nullCBs);
+		m_pDevContext->PSSetConstantBuffers(0, 14, nullCBs);
+
+		m_pDevContext->VSSetShader(nullptr, nullptr, 0);
+		m_pDevContext->PSSetShader(nullptr, nullptr, 0);
+		m_pDevContext->IASetInputLayout(nullptr);
+
+	}
+
 	bool D3D11Renderer::destroy()
 	{
 		if (m_pDevContext)
 		{
+			this->unbindEverything();
+
 			m_pDevContext->ClearState();
 			m_pDevContext->Flush();
 		}
 
 		m_pRenderTargetView.Reset();
 		m_pDepthBuffer.reset();
+
 		if (m_pDXGISwapChain)
 		{
 			m_pDXGISwapChain->SetFullscreenState(FALSE, 0);

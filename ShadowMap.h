@@ -9,7 +9,7 @@ namespace AlbinoEngine
 	{
 	public:
 		ShadowMap(ID3D11Device* device, UINT width, UINT height);
-		~ShadowMap() = default;
+		~ShadowMap();
 
 		bool initialize();
 

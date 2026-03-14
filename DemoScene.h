@@ -24,6 +24,7 @@ public:
     bool initialize(AlbinoEngine::Engine& engine) override;
     void update(AlbinoEngine::Engine& engine, float dt) override;
     void render(AlbinoEngine::Engine& engine) override;
+    void destroy() override;
     AlbinoEngine::EffectContext buildEffectContext(AlbinoEngine::Engine& engine) override;
 
 private:

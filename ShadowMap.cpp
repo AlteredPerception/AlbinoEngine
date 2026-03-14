@@ -13,6 +13,14 @@ namespace AlbinoEngine
 		m_viewport.MaxDepth = 1.0f;
 	}
 
+	ShadowMap::~ShadowMap()
+	{
+		this->m_texture.Reset();
+		this->m_dsv.Reset();
+		this->m_srv.Reset();
+		this->m_comparisonSampler.Reset();
+	}
+
 	bool ShadowMap::initialize()
 	{
 		if (!m_device)

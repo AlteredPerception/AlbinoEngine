@@ -47,6 +47,8 @@ namespace AlbinoEngine
 
 		DepthBuffer* getDepthBuffer() const { return m_pDepthBuffer.get(); }
 
+	private:
+		void unbindEverything();
 	protected:
 		D3D11_VIEWPORT mainViewport;
 		void createRenderTarget();

@@ -263,11 +263,11 @@ void DemoScene::update(AlbinoEngine::Engine& engine, float dt)
     if (keyDown(VK_ESCAPE))
         PostQuitMessage(0);
 
-    const float speed = 5.0f;
+    const float speed = 10.0f;
     float xRot = cubeMesh->getMeshRotation().x;
     float yRot = cubeMesh->getMeshRotation().y;
     float zRot = cubeMesh->getMeshRotation().z;
-    xRot -= speed * dt;
+    xRot += speed * dt;
     yRot += speed * dt;
     zRot *= speed * dt;
     // Movement
@@ -293,6 +293,18 @@ void DemoScene::render(AlbinoEngine::Engine& engine)
 
     //m_effect.render(fx, *m_cube);
     //engine.getMeshManager().renderAll(engine.getEffectsManager(), fx);
+}
+
+void DemoScene::destroy()
+{
+    if (this->m_rsSolid) m_rsSolid.Reset();
+    if (this->m_dsSolid) m_dsSolid.Reset();
+    if (this->m_rsOverlay) m_rsOverlay.Reset();
+    if (this->m_dsOverlay) m_dsOverlay.Reset();
+    if (this->m_bsOverlay) m_bsOverlay.Reset();
+    if (this->m_vs) m_vs.reset();
+    if (this->m_ps) m_ps.reset();
+    if (this->m_cube) m_cube.reset();
 }
 
 AlbinoEngine::EffectContext DemoScene::buildEffectContext(AlbinoEngine::Engine& engine)
