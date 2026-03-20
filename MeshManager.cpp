@@ -5,6 +5,7 @@
 #include "ScreenQuadMesh.h"
 
 #include <iostream>
+#include <sstream>
 
 namespace AlbinoEngine
 {
@@ -109,6 +110,9 @@ namespace AlbinoEngine
 			if (entry.second.effectName == excludedEffect) 
 				continue;
 
+			if (!entry.second.mesh->isVisible())
+				continue;
+
 			Effect* effect = effects.getEffect(entry.second.effectName);
 			if (!effect) 
 				continue;
@@ -127,7 +131,8 @@ namespace AlbinoEngine
 			if (!entry.second.mesh) continue;
 			if (entry.second.effectName != effectName) continue;
 
-
+			if (!entry.second.mesh->isVisible())
+				continue; 
 			//OutputDebugStringA("Rendering screen quad mesh!\n");
 			Effect* effect = effects.getEffect(entry.second.effectName);
 			if (!effect)
@@ -151,13 +156,17 @@ namespace AlbinoEngine
 			if (entry.second.effectName == excludedEffect)
 				continue;
 
-			if (!entry.second.mesh->getCastShadows())
+			std::wostringstream str;
+			str << "Point Light shadow caster: " << entry.first << std::endl;
+			str << "Casts shadows: " << std::to_wstring(entry.second.mesh->isCastingShadows()) << std::endl;
+			OutputDebugString(str.str().c_str());
+			if (!entry.second.mesh->isCastingShadows())
 			{
-			//	std::wstring msg = L"Skipping shadow caster: " + entry.first + L"\n";
-			//	OutputDebugString(msg.c_str());
 				continue;
 			}
-			
+
+			if (!entry.second.mesh->isVisible())
+				continue;
 			//std::wstring msg = L"Shadow caster: " + entry.first + L"\n";
 			//OutputDebugString(msg.c_str());
 

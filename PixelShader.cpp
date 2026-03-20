@@ -1,3 +1,4 @@
+#include "ShaderInclude.h"
 #include "PixelShader.h"
 
 namespace AlbinoEngine
@@ -11,21 +12,54 @@ namespace AlbinoEngine
 
 	PixelShader::~PixelShader()
 	{
-		//if (m_pPixelShader)
-		//{
-		//	m_pPixelShader.Reset();
-		//}
+		m_pPixelShader.Reset();
+		m_pPixelShaderReflection.Reset();
+		m_pPixelDevice = nullptr;
+
+		if (m_pPixelBlob)
+		{
+			m_pPixelBlob->Release();
+			m_pPixelBlob = 0;
+		}
+
+		if (m_pErrorBlob)
+		{
+			m_pErrorBlob->Release();
+			m_pErrorBlob = 0;
+		}
 	}
 
 	bool PixelShader::loadPixelShader(std::wstring pixelFile, std::string pixelEntryPoint, std::string pixelProfile, bool useDebug)
 	{
+		if (m_pPixelBlob)
+		{
+			m_pPixelBlob->Release();
+			m_pPixelBlob = nullptr;
+		}
+
+		if (m_pErrorBlob)
+		{
+			m_pErrorBlob->Release();
+			m_pErrorBlob = nullptr;
+		}
+
+		m_pPixelShader.Reset();
+		m_pPixelShaderReflection.Reset();
+		UINT flags = 0;
+#if defined(_DEBUG)
+		if (useDebug)
+		{
+			flags |= D3DCOMPILE_DEBUG;
+		}
+#endif
+		ShaderInclude includeHandler(pixelFile);
 		HRESULT hr = D3DCompileFromFile(
 			pixelFile.c_str(), 
 			0, 
-			0, 
+			&includeHandler, 
 			pixelEntryPoint.c_str(), 
 			pixelProfile.c_str(), 
-			D3DCOMPILE_DEBUG, 
+			flags, 
 			0, 
 			&m_pPixelBlob, 
 			&m_pErrorBlob);
@@ -66,7 +100,7 @@ namespace AlbinoEngine
 			return false;
 		}
 		else {
-			OutputDebugStringA("Pixel Shader reflection acquired.");
+			OutputDebugStringA("Pixel Shader reflection acquired.\n");
 		}
 		
 		return true;

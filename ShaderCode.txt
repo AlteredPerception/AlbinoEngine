@@ -171,3 +171,52 @@ float computeShadow(float4 shadowPos)
 
     return shadow / 9.0f;
 }
+
+PointShader:
+
+cbuffer WorldViewProjection : register(b0)
+{
+    float4x4 world;
+    float4x4 worldInvTranspose;
+    float4x4 worldViewProjection;
+};
+
+cbuffer PointShadowData : register(b1)
+{
+    float3 lightPosition;
+    float lightRange;
+};
+
+struct VS_INPUT
+{
+    float3 position : POSITION;
+    float3 normal   : NORMAL;
+    float2 uv       : TEXCOORD0;
+};
+
+struct VS_OUTPUT
+{
+    float4 position : SV_POSITION;
+    float3 worldPos : TEXCOORD0;
+};
+
+VS_OUTPUT vs_main(VS_INPUT input)
+{
+    VS_OUTPUT output;
+
+    float4 localPos = float4(input.position, 1.0f);
+    //float4 wp = mul(localPos, world);
+
+    //output.worldPos = wp.xyz;
+    output.position = mul(localPos, worldViewProjection);
+
+    return output;
+}
+
+//float4 ps_main(VS_OUTPUT input) : SV_TARGET
+//{
+//    float dist = distance(input.worldPos, lightPosition);
+//    float normalizedDepth = saturate(dist / lightRange);
+
+//    return float4(normalizedDepth, normalizedDepth, normalizedDepth, 1.0f);
+//}

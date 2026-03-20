@@ -10,10 +10,9 @@ namespace AlbinoEngine
 
 	Texture2D::~Texture2D()
 	{
-		if (this->m_texture2D)
-		{
-			this->m_texture2D.Reset();
-		}
+		m_ShaderResource.Reset();
+		m_texture2D.Reset();
+		m_TextureSampler.reset();
 	}
 
 	bool Texture2D::loadTexture(std::wstring textureName)

@@ -2,6 +2,7 @@
 #include "Mesh.h"
 #include "Camera.h"
 #include "ShadowMap.h"
+#include "PointShadowMap.h"
 
 #include <DirectXMath.h>
 
@@ -102,6 +103,39 @@ namespace AlbinoEngine
 		return SUCCEEDED(hr);
 	}
 
+	bool Pass::ensureDebugColorCB(ID3D11Device* device)
+	{
+		if (this->m_cbDebugColor)
+			return true;
+
+		if (!device)
+			return false;
+
+		D3D11_BUFFER_DESC bd{};
+		bd.Usage = D3D11_USAGE_DEFAULT;
+		bd.ByteWidth = sizeof(CB_DebugColor);
+		bd.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
+
+		HRESULT hr = device->CreateBuffer(&bd, nullptr, m_cbDebugColor.ReleaseAndGetAddressOf());
+		return SUCCEEDED(hr);
+	}
+
+	void Pass::updateAndBindDebugColorCB(EffectContext& fx, const DirectX::XMFLOAT4& color)
+	{
+		if (!fx.context)
+			return;
+
+		if (!ensureDebugColorCB(fx.device))
+			return;
+
+		CB_DebugColor cb{};
+		cb.color = color;
+
+		fx.context->UpdateSubresource(m_cbDebugColor.Get(), 0, nullptr, &cb, 0, 0);
+
+		ID3D11Buffer* buf = m_cbDebugColor.Get();
+		fx.context->PSSetConstantBuffers(1, 1, &buf);
+	}
 	bool Pass::ensureFrameLightingCB(ID3D11Device* device)
 	{
 		if (m_cbFrameLighting)
@@ -191,6 +225,9 @@ namespace AlbinoEngine
 		cb.world = XMMatrixTranspose(world);
 		cb.worldInvTranspose = XMMatrixTranspose(worldInvTranspose);
 		cb.worldViewProjction = XMMatrixTranspose(worldViewProjection);
+
+		cb.receiveShadows = mesh.isReceiverOfShadows() ? 1.0f : 0.0f;
+
 		fx.context->UpdateSubresource(m_cbPerObject.Get(), 0, nullptr, &cb, 0, 0);
 
 		// Bind to the slot the VS expects.
@@ -208,32 +245,51 @@ namespace AlbinoEngine
 
 	void Pass::updateAndBindFrameLightingCB(EffectContext& fx)
 	{
-		if (!fx.context || !fx.directionalLight)
+		if (!fx.context)
 			return;
 
 		if (!ensureFrameLightingCB(fx.device))
 			return;
 
 		CB_FrameLighting cb{};
-		cb.lightDirection = fx.directionalLight->direction;
-		cb.lightColor = fx.directionalLight->color;
-		cb.lightIntensity = fx.directionalLight->intensity;
+		for (UINT i = 0; i < fx.numDirectionalLights && i < 2; ++i)
+		{
+			if (!fx.directionalLights[i])
+				continue;
+
+			cb.directionalLights[i].direction = fx.directionalLights[i]->direction;
+			cb.directionalLights[i].color = fx.directionalLights[i]->color;
+			cb.directionalLights[i].intensity = fx.directionalLights[i]->intensity;
+		}
+
+		for (UINT i = 0; i < fx.numPointLights && i < 4; ++i)
+		{
+			if (!fx.pointLights[i])
+				continue;
+
+			cb.pointLights[i].position = fx.pointLights[i]->position;
+			cb.pointLights[i].color = fx.pointLights[i]->color;
+			cb.pointLights[i].intensity = fx.pointLights[i]->intensity;
+		}
+
+		cb.numDirectionalLights = fx.numDirectionalLights;
+		cb.numPointLights = fx.numPointLights;
 
 		if (fx.camera)
 			cb.cameraPosition = fx.camera->getCameraPosition();
 
-		cb.ambientStrength = 0.10f;
+		cb.ambientStrength = 0.03f;
 		cb.specularColor = { 1.0f, 1.0f, 1.0f };
 		cb.shininess = 32.0f;
 		cb.lightViewProjection = XMMatrixTranspose(fx.lightViewProjection);
-		cb.shadowBias = 0.0015f;
+		cb.shadowBias = 1.0f;
+
 		fx.context->UpdateSubresource(m_cbFrameLighting.Get(), 0, nullptr, &cb, 0, 0);
 
 		ID3D11Buffer* buf = m_cbFrameLighting.Get();
 		fx.context->VSSetConstantBuffers(1, 1, &buf);
 		fx.context->PSSetConstantBuffers(1, 1, &buf);
-		
-		// Bind shadow map to t1 for normal scene rendering.
+
 		if (fx.shadowMap)
 		{
 			ID3D11ShaderResourceView* shadowSrv = fx.shadowMap->getSRV();
@@ -242,8 +298,59 @@ namespace AlbinoEngine
 			ID3D11SamplerState* shadowSampler = fx.shadowMap->getComparisonSampler();
 			fx.context->PSSetSamplers(1, 1, &shadowSampler);
 		}
+
+		if (fx.pointShadowMap)
+		{
+			ID3D11ShaderResourceView* pointShadowSrv = fx.pointShadowMap->getSRV();
+			fx.context->PSSetShaderResources(2, 1, &pointShadowSrv);
+
+			ID3D11SamplerState* pointShadowSampler = fx.pointShadowMap->getSampler();
+			fx.context->PSSetSamplers(2, 1, &pointShadowSampler);
+		}
 	}
 
+	bool Pass::ensurePointShadowCB(ID3D11Device* device)
+	{
+		if (m_cbPointShadowData)
+			return false;
+
+		D3D11_BUFFER_DESC bd{};
+		bd.Usage = D3D11_USAGE_DEFAULT;
+		bd.ByteWidth = sizeof(CB_PointShadowData);
+		bd.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
+
+		HRESULT hr = device->CreateBuffer(&bd, nullptr, m_cbPointShadowData.ReleaseAndGetAddressOf());
+
+		return SUCCEEDED(hr);
+	}
+
+	void Pass::updateAndBindPointShadowCB(EffectContext& fx)
+	{
+		if (!fx.context)
+			return;
+
+		if (!ensurePointShadowCB(fx.device))
+			return;
+
+		CB_PointShadowData cb{};
+		cb.lightPosition = fx.pointShadowLightPosition;
+		cb.lightRange = fx.pointShadowLightRange;
+
+		char cbuf[256];
+
+		sprintf_s(cbuf, "PointShadowCB: pos=(%.2f, %.2f, %.2f) range=%.2f\n",
+			fx.pointShadowLightPosition.x,
+			fx.pointShadowLightPosition.y,
+			fx.pointShadowLightPosition.z,
+			fx.pointShadowLightRange);
+		OutputDebugStringA(cbuf);
+
+		fx.context->UpdateSubresource(m_cbPointShadowData.Get(), 0, nullptr, &cb, 0, 0);
+
+		ID3D11Buffer* buf = m_cbPointShadowData.Get();
+		fx.context->VSSetConstantBuffers(2, 1, &buf);
+		fx.context->PSSetConstantBuffers(2, 1, &buf);
+	}
 	void Pass::render(EffectContext& fx, Mesh& mesh)
 	{
 		if (!fx.device || !fx.context) 
@@ -258,10 +365,15 @@ namespace AlbinoEngine
 				return;
 
 			updateAndBindPerObjectCB(fx, mesh);
-			updateAndBindFrameLightingCB(fx);
+
+			if (fx.usePointShadowData)
+				updateAndBindPointShadowCB(fx);
+			else if(fx.useDebugColor)
+				updateAndBindDebugColorCB(fx, fx.debugColor);
+			else 
+				updateAndBindFrameLightingCB(fx);
+			
 		}
-		// Per-object data
-		//updateAndBindPerObjectCB(fx, mesh);
 		
 		// Draw geometry (IMPORTANT: Mesh::drawGeometryOnly() must NOT override IA input layout)
 		mesh.drawGeometryOnly();

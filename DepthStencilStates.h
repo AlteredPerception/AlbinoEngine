@@ -15,6 +15,24 @@ namespace AlbinoEngine
 			dsSolidDesc.DepthEnable = TRUE;
 			dsSolidDesc.DepthWriteMask = D3D11_DEPTH_WRITE_MASK_ALL;
 			dsSolidDesc.DepthFunc = D3D11_COMPARISON_LESS;
+
+			// Stencil 
+			dsSolidDesc.StencilEnable = FALSE;
+			dsSolidDesc.StencilReadMask = D3D11_DEFAULT_STENCIL_READ_MASK;
+			dsSolidDesc.StencilWriteMask = D3D11_DEFAULT_STENCIL_WRITE_MASK;
+
+			// Stencil FrontFace.
+			dsSolidDesc.FrontFace.StencilFailOp = D3D11_STENCIL_OP_KEEP;
+			dsSolidDesc.FrontFace.StencilDepthFailOp = D3D11_STENCIL_OP_KEEP;
+			dsSolidDesc.FrontFace.StencilPassOp = D3D11_STENCIL_OP_KEEP;
+			dsSolidDesc.FrontFace.StencilFunc = D3D11_COMPARISON_ALWAYS;
+
+			// Stencil BackFace.
+			dsSolidDesc.BackFace.StencilFailOp = D3D11_STENCIL_OP_KEEP;
+			dsSolidDesc.BackFace.StencilDepthFailOp = D3D11_STENCIL_OP_KEEP;
+			dsSolidDesc.BackFace.StencilPassOp = D3D11_STENCIL_OP_KEEP;
+			dsSolidDesc.BackFace.StencilFunc = D3D11_COMPARISON_ALWAYS;
+
 			device->CreateDepthStencilState(&dsSolidDesc, &dsSolid);
 			return dsSolid;
 		}
@@ -27,6 +45,25 @@ namespace AlbinoEngine
 			dsWireFrameDesc.DepthEnable = TRUE;
 			dsWireFrameDesc.DepthWriteMask = D3D11_DEPTH_WRITE_MASK_ZERO;
 			dsWireFrameDesc.DepthFunc = D3D11_COMPARISON_LESS_EQUAL;
+
+			// Stencil 
+			dsWireFrameDesc.StencilEnable = FALSE;
+			dsWireFrameDesc.StencilReadMask = D3D11_DEFAULT_STENCIL_READ_MASK;
+			dsWireFrameDesc.StencilWriteMask = D3D11_DEFAULT_STENCIL_WRITE_MASK;
+
+			// Stencil FrontFace.
+			dsWireFrameDesc.FrontFace.StencilFailOp = D3D11_STENCIL_OP_KEEP;
+			dsWireFrameDesc.FrontFace.StencilDepthFailOp = D3D11_STENCIL_OP_KEEP;
+			dsWireFrameDesc.FrontFace.StencilPassOp = D3D11_STENCIL_OP_KEEP;
+			dsWireFrameDesc.FrontFace.StencilFunc = D3D11_COMPARISON_ALWAYS;
+
+			// Stencil BackFace.
+			dsWireFrameDesc.BackFace.StencilFailOp = D3D11_STENCIL_OP_KEEP;
+			dsWireFrameDesc.BackFace.StencilDepthFailOp = D3D11_STENCIL_OP_KEEP;
+			dsWireFrameDesc.BackFace.StencilPassOp = D3D11_STENCIL_OP_KEEP;
+			dsWireFrameDesc.BackFace.StencilFunc = D3D11_COMPARISON_ALWAYS;
+
+
 			device->CreateDepthStencilState(&dsWireFrameDesc, &dsWireframe);
 			return dsWireframe;
 		}

@@ -32,11 +32,15 @@ private:
     void createEffect(AlbinoEngine::Engine& engine);
     void setBlendFactor(float r, float g, float b, float a);
 private:
+    void createDebugLightEffect(AlbinoEngine::Engine& engine);
+
     std::unique_ptr<AlbinoEngine::Camera> m_camera;
 
     std::shared_ptr<AlbinoEngine::VertexShader> m_vs;
     std::shared_ptr<AlbinoEngine::PixelShader>  m_ps;
 
+    std::shared_ptr<AlbinoEngine::VertexShader> m_debugVS;
+    std::shared_ptr<AlbinoEngine::PixelShader> m_debugPS;
     std::shared_ptr<AlbinoEngine::CubeMesh> m_cube;
 
     AlbinoEngine::Effect m_effect{ "BasicEffect" };
@@ -45,6 +49,7 @@ private:
     Microsoft::WRL::ComPtr<ID3D11RasterizerState> m_rsOverlay;
     Microsoft::WRL::ComPtr<ID3D11DepthStencilState> m_dsSolid;
     Microsoft::WRL::ComPtr<ID3D11DepthStencilState> m_dsOverlay;
+    Microsoft::WRL::ComPtr<ID3D11DepthStencilState> m_dsReadyOnly;
     Microsoft::WRL::ComPtr<ID3D11BlendState> m_bsOverlay;
 
     float m_overlayFactor[4] = { 0.35f, 0.35f, 0.35f, 0.35f };

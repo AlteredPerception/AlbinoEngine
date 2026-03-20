@@ -10,6 +10,11 @@ namespace AlbinoEngine
 
 	RenderTargetTexture::~RenderTargetTexture()
 	{
+		m_renderShaderResource.Reset();
+		m_renderTargetView.Reset();
+		m_renderTargetTexture.Reset();
+		m_textureSampler.reset();
+		m_depthBuffer.reset();
 	}
 
 	void RenderTargetTexture::setDepthBuffer(std::shared_ptr<DepthBuffer> depthBuffer)

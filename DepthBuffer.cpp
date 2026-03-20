@@ -13,6 +13,7 @@ namespace AlbinoEngine
 		this->m_pDepthStencilTexture.Reset();
 		this->m_pDepthStencilState.Reset();
 		this->m_pDepthRaster.Reset();
+		this->m_pDevice = nullptr;
 	}
 
 	bool DepthBuffer::createDepthBuffer(UINT width, UINT height)
@@ -69,8 +70,24 @@ namespace AlbinoEngine
 		depthEnable.DepthEnable = TRUE;
 		depthEnable.DepthWriteMask = D3D11_DEPTH_WRITE_MASK_ALL;
 		depthEnable.DepthFunc = D3D11_COMPARISON_LESS;
-		depthEnable.StencilEnable = FALSE;
 		
+		// Stencil 
+		depthEnable.StencilEnable = FALSE;
+		depthEnable.StencilReadMask = D3D11_DEFAULT_STENCIL_READ_MASK;
+		depthEnable.StencilWriteMask = D3D11_DEFAULT_STENCIL_WRITE_MASK;
+
+		// Stencil FrontFace.
+		depthEnable.FrontFace.StencilFailOp = D3D11_STENCIL_OP_KEEP;
+		depthEnable.FrontFace.StencilDepthFailOp = D3D11_STENCIL_OP_KEEP;
+		depthEnable.FrontFace.StencilPassOp = D3D11_STENCIL_OP_KEEP;
+		depthEnable.FrontFace.StencilFunc = D3D11_COMPARISON_ALWAYS;
+		
+		// Stencil BackFace.
+		depthEnable.BackFace.StencilFailOp = D3D11_STENCIL_OP_KEEP;
+		depthEnable.BackFace.StencilDepthFailOp = D3D11_STENCIL_OP_KEEP;
+		depthEnable.BackFace.StencilPassOp = D3D11_STENCIL_OP_KEEP;
+		depthEnable.BackFace.StencilFunc = D3D11_COMPARISON_ALWAYS;
+
 		hr = m_pDevice->CreateDepthStencilState(&depthEnable, this->m_pDepthStencilState.ReleaseAndGetAddressOf());
 		return SUCCEEDED(hr);
 	}
@@ -86,6 +103,25 @@ namespace AlbinoEngine
 		noDepthState.DepthEnable = FALSE;
 		noDepthState.DepthWriteMask = D3D11_DEPTH_WRITE_MASK_ZERO;
 		noDepthState.DepthFunc = D3D11_COMPARISON_LESS_EQUAL;
+
+		// Stencil 
+		noDepthState.StencilEnable = FALSE;
+		noDepthState.StencilReadMask = D3D11_DEFAULT_STENCIL_READ_MASK;
+		noDepthState.StencilWriteMask = D3D11_DEFAULT_STENCIL_WRITE_MASK;
+
+		// Stencil FrontFace.
+		noDepthState.FrontFace.StencilFailOp = D3D11_STENCIL_OP_KEEP;
+		noDepthState.FrontFace.StencilDepthFailOp = D3D11_STENCIL_OP_KEEP;
+		noDepthState.FrontFace.StencilPassOp = D3D11_STENCIL_OP_KEEP;
+		noDepthState.FrontFace.StencilFunc = D3D11_COMPARISON_ALWAYS;
+
+		// Stencil BackFace.
+		noDepthState.BackFace.StencilFailOp = D3D11_STENCIL_OP_KEEP;
+		noDepthState.BackFace.StencilDepthFailOp = D3D11_STENCIL_OP_KEEP;
+		noDepthState.BackFace.StencilPassOp = D3D11_STENCIL_OP_KEEP;
+		noDepthState.BackFace.StencilFunc = D3D11_COMPARISON_ALWAYS;
+
+
 		hr = m_pDevice->CreateDepthStencilState(&noDepthState, m_pDepthStencilState.ReleaseAndGetAddressOf());
 
 		return SUCCEEDED(hr);

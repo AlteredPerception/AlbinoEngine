@@ -1,3 +1,4 @@
+#include "ShaderInclude.h"
 #include "VertexShader.h"
 #include "Vertex.h"
 
@@ -15,14 +16,47 @@ namespace AlbinoEngine
 
 	VertexShader::~VertexShader()
 	{
-		if (m_pVertexShader)
+		this->m_pVertexShaderLayout.Reset();
+		this->m_pVertexShader.Reset();
+		this->m_pVertexShaderReflection.Reset();
+
+		m_pVertexShaderConstants.clear();
+
+		m_pConstantBuffers = nullptr;
+		m_pVertexShaderDevice = nullptr;
+
+		if (m_pVertexBlob)
 		{
-			m_pVertexShader.Reset();
+			m_pVertexBlob->Release();
+			m_pVertexBlob = 0;
+		}
+
+		if (m_pErrorBlob)
+		{
+			m_pErrorBlob->Release();
+			m_pErrorBlob = 0;
 		}
 	}
 
 	bool VertexShader::loadVertexShader(std::wstring vertFile, std::string vertEntryPoint, std::string vertProfile, bool useDebug)
 	{
+
+		if (m_pVertexBlob)
+		{
+			m_pVertexBlob->Release();
+			m_pVertexBlob = nullptr;
+		}
+
+		if (m_pErrorBlob)
+		{
+			m_pErrorBlob->Release();
+			m_pErrorBlob = nullptr;
+		}
+
+		m_pVertexShader.Reset();
+		m_pVertexShaderReflection.Reset();
+		m_pVertexShaderLayout.Reset();
+		m_pVertexShaderConstants.clear();
 		UINT flags = 0;
 
 #if defined(_DEBUG)
@@ -31,10 +65,13 @@ namespace AlbinoEngine
 			flags |= D3DCOMPILE_DEBUG | D3DCOMPILE_SKIP_OPTIMIZATION;
 		}
 #endif
+
+		ShaderInclude includeHandler(vertFile);
+
 		HRESULT hr = D3DCompileFromFile(
 			vertFile.c_str(),
 			nullptr,
-			nullptr,
+			&includeHandler,
 			vertEntryPoint.c_str(),
 			vertProfile.c_str(),
 			flags,
@@ -49,23 +86,21 @@ namespace AlbinoEngine
 				std::string message;
 				message += (char*)m_pErrorBlob->GetBufferPointer();
 				OutputDebugStringA(message.c_str());
-				m_pErrorBlob->Release();
-				m_pErrorBlob = 0;
+				//m_pErrorBlob->Release();
+				//m_pErrorBlob = 0;
 			}
-			//m_pVertexBlob->Release();
-			//m_pVertexBlob = 0;
 			return false;
 		}
 
 		hr = m_pVertexShaderDevice->CreateVertexShader(m_pVertexBlob->GetBufferPointer(), m_pVertexBlob->GetBufferSize(), nullptr, this->m_pVertexShader.ReleaseAndGetAddressOf());
 		if (FAILED(hr)) {
 			OutputDebugStringA("Could not create vertexShader.\n");
-			if (m_pVertexBlob) 
-			{
-				m_pVertexBlob->Release();
-				m_pVertexBlob = 0;
-			}
-			m_pVertexShader.Reset();
+			//if (m_pVertexBlob) 
+			//{
+			//	m_pVertexBlob->Release();
+			//	m_pVertexBlob = 0;
+			//}
+			//m_pVertexShader.Reset();
 			return false;
 		}
 

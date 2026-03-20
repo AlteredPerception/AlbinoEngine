@@ -13,12 +13,33 @@
 #include "..//AlbinoEngine/TextureManager.h"
 
 using Microsoft::WRL::ComPtr;
+using namespace AlbinoEngine;
 
 static bool keyDown(int vk)
 {
     return (GetAsyncKeyState(vk) & 0x8000) != 0;
 }
 
+void DemoScene::createDebugLightEffect(AlbinoEngine::Engine& engine)
+{
+    m_debugVS = std::make_shared<AlbinoEngine::VertexShader>(engine.device());
+    m_debugPS = std::make_shared<AlbinoEngine::PixelShader>(engine.device());
+
+    m_debugVS->loadVertexShader(L"media//shaders//UnlitColor3D.shader", "vs_main", "vs_5_0");
+    m_debugPS->loadPixelShader(L"media//shaders//UnlitColor3D.shader", "ps_main", "ps_5_0");
+
+    auto eff = engine.getEffectsManager().createEffect("DebugLight").get();
+    auto& tech = eff->createTechnique("default");
+    eff->setActiveTechnique("default");
+
+    auto pass = std::make_unique<AlbinoEngine::Pass>(m_debugVS, m_debugPS);
+    pass->name = "DebugLightPass";
+    pass->buildInputLayout(engine.device());
+    pass->setRasterizerState(m_rsSolid.Get());
+    pass->setDepthStencialState(m_dsReadyOnly.Get());
+
+    tech.addPass(std::move(pass));
+}
 
 void DemoScene::createStates(AlbinoEngine::Engine& engine)
 {
@@ -48,15 +69,77 @@ void DemoScene::createStates(AlbinoEngine::Engine& engine)
         ds.DepthEnable = TRUE;
         ds.DepthWriteMask = D3D11_DEPTH_WRITE_MASK_ALL;
         ds.DepthFunc = D3D11_COMPARISON_LESS;
+
+        // Stencil 
+        ds.StencilEnable = FALSE;
+        ds.StencilReadMask = D3D11_DEFAULT_STENCIL_READ_MASK;
+        ds.StencilWriteMask = D3D11_DEFAULT_STENCIL_WRITE_MASK;
+
+        // Stencil FrontFace.
+        ds.FrontFace.StencilFailOp = D3D11_STENCIL_OP_KEEP;
+        ds.FrontFace.StencilDepthFailOp = D3D11_STENCIL_OP_KEEP;
+        ds.FrontFace.StencilPassOp = D3D11_STENCIL_OP_KEEP;
+        ds.FrontFace.StencilFunc = D3D11_COMPARISON_ALWAYS;
+
+        // Stencil BackFace.
+        ds.BackFace.StencilFailOp = D3D11_STENCIL_OP_KEEP;
+        ds.BackFace.StencilDepthFailOp = D3D11_STENCIL_OP_KEEP;
+        ds.BackFace.StencilPassOp = D3D11_STENCIL_OP_KEEP;
+        ds.BackFace.StencilFunc = D3D11_COMPARISON_ALWAYS;
+
         device->CreateDepthStencilState(&ds, m_dsSolid.ReleaseAndGetAddressOf());
     }
 
+    // Depth: readOnly
+    {
+        D3D11_DEPTH_STENCIL_DESC dsReadOnly;
+        dsReadOnly.DepthEnable = FALSE;
+        dsReadOnly.DepthWriteMask = D3D11_DEPTH_WRITE_MASK_ZERO;
+        dsReadOnly.DepthFunc = D3D11_COMPARISON_LESS_EQUAL;
+
+        // Stencil 
+        dsReadOnly.StencilEnable = FALSE;
+        dsReadOnly.StencilReadMask = D3D11_DEFAULT_STENCIL_READ_MASK;
+        dsReadOnly.StencilWriteMask = D3D11_DEFAULT_STENCIL_WRITE_MASK;
+
+        // Stencil FrontFace.
+        dsReadOnly.FrontFace.StencilFailOp = D3D11_STENCIL_OP_KEEP;
+        dsReadOnly.FrontFace.StencilDepthFailOp = D3D11_STENCIL_OP_KEEP;
+        dsReadOnly.FrontFace.StencilPassOp = D3D11_STENCIL_OP_KEEP;
+        dsReadOnly.FrontFace.StencilFunc = D3D11_COMPARISON_ALWAYS;
+
+        // Stencil BackFace.
+        dsReadOnly.BackFace.StencilFailOp = D3D11_STENCIL_OP_KEEP;
+        dsReadOnly.BackFace.StencilDepthFailOp = D3D11_STENCIL_OP_KEEP;
+        dsReadOnly.BackFace.StencilPassOp = D3D11_STENCIL_OP_KEEP;
+        dsReadOnly.BackFace.StencilFunc = D3D11_COMPARISON_ALWAYS;
+
+        device->CreateDepthStencilState(&dsReadOnly, m_dsReadyOnly.ReleaseAndGetAddressOf());
+    }
     // Depth: overlay pass doesn't depth test/write (classic overlay)
     {
         D3D11_DEPTH_STENCIL_DESC ds{};
         ds.DepthEnable = FALSE;
         ds.DepthWriteMask = D3D11_DEPTH_WRITE_MASK_ZERO;
         ds.DepthFunc = D3D11_COMPARISON_LESS_EQUAL;
+
+        // Stencil 
+        ds.StencilEnable = FALSE;
+        ds.StencilReadMask = D3D11_DEFAULT_STENCIL_READ_MASK;
+        ds.StencilWriteMask = D3D11_DEFAULT_STENCIL_WRITE_MASK;
+
+        // Stencil FrontFace.
+        ds.FrontFace.StencilFailOp = D3D11_STENCIL_OP_KEEP;
+        ds.FrontFace.StencilDepthFailOp = D3D11_STENCIL_OP_KEEP;
+        ds.FrontFace.StencilPassOp = D3D11_STENCIL_OP_KEEP;
+        ds.FrontFace.StencilFunc = D3D11_COMPARISON_ALWAYS;
+
+        // Stencil BackFace.
+        ds.BackFace.StencilFailOp = D3D11_STENCIL_OP_KEEP;
+        ds.BackFace.StencilDepthFailOp = D3D11_STENCIL_OP_KEEP;
+        ds.BackFace.StencilPassOp = D3D11_STENCIL_OP_KEEP;
+        ds.BackFace.StencilFunc = D3D11_COMPARISON_ALWAYS;
+
         device->CreateDepthStencilState(&ds, m_dsOverlay.ReleaseAndGetAddressOf());
     }
 
@@ -180,6 +263,8 @@ bool DemoScene::initialize(AlbinoEngine::Engine& engine)
 
     createStates(engine);
     createEffect(engine);
+    createDebugLightEffect(engine);
+
 
     // One cube mesh
     m_cube = std::make_shared<AlbinoEngine::CubeMesh>(engine.device());
@@ -197,26 +282,40 @@ bool DemoScene::initialize(AlbinoEngine::Engine& engine)
     AlbinoEngine::CubeMesh* cubeMesh2 = reinterpret_cast<AlbinoEngine::CubeMesh*>(cube2);
     AlbinoEngine::PlaneMesh* planeMesh = reinterpret_cast<AlbinoEngine::PlaneMesh*>(plane);
 
+    // Debug cube.
+    AlbinoEngine::Mesh* lightMarker = engine.getMeshManager().createMesh(L"pointLightMarker", L"cubeMesh");
+    lightMarker->setCastShadows(false);
+    lightMarker->setReceiveShadows(false);
+    AlbinoEngine::CubeMesh* lightMarkerMesh = reinterpret_cast<AlbinoEngine::CubeMesh*>(lightMarker);
+
+    engine.getMeshManager().setMeshEffect(L"pointLightMarker", "DebugLight", "default");
+
+    lightMarkerMesh->setScale(0.2f, 0.2f, 0.2f);
+    lightMarkerMesh->setRotation(0, 0, 0);
+
+    const AlbinoEngine::PointLight& pointLight = engine.getLightManager().getPointLight(0);
+    lightMarkerMesh->setPosition(pointLight.position.x, pointLight.position.y, pointLight.position.z);
+
     engine.getMeshManager().setMeshEffect(L"cubeMesh", "BasicEffect", "Default");
     engine.getMeshManager().setMeshEffect(L"cube 2", "BasicEffect", "tech2");
     engine.getMeshManager().setMeshEffect(L"planeMesh", "BasicEffect", "tech2");
 
-    planeMesh->setProperties(10.0f, 10.0f, 1.0f, 10.0f, 10.0f);
+    planeMesh->setProperties(10.0f, 10.0f, 5.0f, 10.0f, 10.0f);
     planeMesh->initialize();
     
     planeMesh->setPosition(0, -1, 0);
-    planeMesh->setScale(100, 0.25, 100);
+    planeMesh->setScale(1, 1, 1);
     planeMesh->setRotation(0, 0, 0);
-    //cubeMesh2->initliaze();
+    
+    cubeMesh2->serVisible(true);
+    cubeMesh2->setCastShadows(true);
     cubeMesh2->setPosition(5.0f, 0.0f, 5.0f);
     cubeMesh2->setScale(1.0f, 1.0f, 1.0f);
     cubeMesh2->setRotation(0, 0, 0);
-    //cubeMesh->initliaze();
+    
     cubeMesh->setPosition(0.0f, 0.0f, 0.0f);
     cubeMesh->setScale(1.0f, 1.0f, 1.0f);
     cubeMesh->setRotation(0.0f, 0.0f, 0.0f);
-    // IMPORTANT: we render via Effect/Pass using EffectContext's camera.
-    // Mesh doesn't need to hold a camera anymore for this path.
 
     return true;
 }
@@ -270,6 +369,24 @@ void DemoScene::update(AlbinoEngine::Engine& engine, float dt)
     xRot += speed * dt;
     yRot += speed * dt;
     zRot *= speed * dt;
+
+    AlbinoEngine::PointLight movingLight = engine.getLightManager().getPointLight(0);
+    
+    float t = engine.getTotalTime();
+
+    movingLight.position.x = cosf(t) * 3.0f;
+    movingLight.position.y = 1.5f + sinf(t * 0.5f) * 0.5f;
+    movingLight.position.z = sinf(t) * 3.0f;
+
+    engine.getLightManager().setPointLight(0, movingLight);
+    AlbinoEngine::Mesh* marker = engine.getMeshManager().getMeshByName(L"pointLightMarker");
+    AlbinoEngine::CubeMesh* markerMesh = reinterpret_cast<AlbinoEngine::CubeMesh*>(marker);
+
+    if (markerMesh)
+    {
+        const AlbinoEngine::PointLight& point = engine.getLightManager().getPointLight(0);
+        marker->setPosition(point.position.x, point.position.y, point.position.z);
+    }
     // Movement
     if (keyDown(VK_UP) || keyDown('W'))    m_camera->moveForward(speed * dt);
     if (keyDown(VK_DOWN) || keyDown('S'))  m_camera->moveBackwards(speed * dt);
@@ -277,11 +394,40 @@ void DemoScene::update(AlbinoEngine::Engine& engine, float dt)
     if (keyDown(VK_RIGHT) || keyDown('D')) m_camera->moveRight(speed * dt);
     if (keyDown(VK_SPACE)) m_camera->moveUp(speed * dt);
     if (keyDown('R')) m_camera->setCameraPosition(0, 0, -3);
+
+    if (keyDown('X')) {
+        Mesh* mesh = engine.getMeshManager().getMeshByName(L"cube 2");
+        mesh->serVisible(false);
+    }
+
+    if (keyDown('C'))
+    {
+        Mesh* mesh = engine.getMeshManager().getMeshByName(L"cube 2");
+        if (!mesh->isVisible())
+            mesh->serVisible(true);
+    }
     cubeMesh->setRotation(xRot, yRot, zRot);
 }
 
 void DemoScene::render(AlbinoEngine::Engine& engine)
 {
+    AlbinoEngine::Mesh* marker = engine.getMeshManager().getMeshByName(L"pointLightMarker");
+    //marker->setCastShadows(false);
+    if (marker && m_camera)
+    {
+        AlbinoEngine::EffectContext fx{};
+        fx.device = engine.device();
+        fx.context = engine.context();
+        fx.camera = m_camera.get();
+        fx.useDebugColor = true;
+
+        const AlbinoEngine::PointLight& point = engine.getLightManager().getPointLight(0);
+        fx.debugColor = { point.color.x, point.color.y, point.color.z, 1.0f };
+
+        auto* eff = engine.getEffectsManager().getEffect("DebugLight");
+        if (eff)
+            eff->render(fx, *marker);
+    }
     //if (!m_cube || !m_camera) return;
 
     //AlbinoEngine::EffectContext fx;

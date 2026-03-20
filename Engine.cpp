@@ -35,7 +35,7 @@ namespace AlbinoEngine
 			static_cast<float>(height),
 			0.0f,1.0f);
 
-		m_renderViewport->setViewportColor(0.0f, 0.5f, 0.0f, 1.0f);
+		m_renderViewport->setViewportColor(0.0f, 0.0f, 0.0f, 1.0f);
 
 		m_renderTargetManager = std::make_unique<RenderTargetManager>(m_MainRenderer->getDevice());
 		m_renderTargetManager->createRenderTarget(width, height);
@@ -53,20 +53,43 @@ namespace AlbinoEngine
 		// Default directional light
 		DirectionalLight sun{};
 		sun.direction = { 0.3f, -1.0f, 0.2f };
-
-		DirectX::XMVECTOR d = DirectX::XMLoadFloat3(&sun.direction);
-		d = DirectX::XMVector3Normalize(d);
-		DirectX::XMStoreFloat3(&sun.direction, d);
-		sun.color = { 1.0f, 0.75f, 1.0f };
+		{
+			DirectX::XMVECTOR d = DirectX::XMLoadFloat3(&sun.direction);
+			d = DirectX::XMVector3Normalize(d);
+			DirectX::XMStoreFloat3(&sun.direction, d);
+		}
+		sun.color = { 1.0f, 0.92f, 0.78f };
 		sun.intensity = 1.5f;
-		m_lightManager->setDirectionalLight(sun);
+		m_lightManager->setDirectionalLight(0,sun);
+
+		DirectionalLight fill{};
+		fill.direction = { -0.7f, -0.4f, -0.2f };
+		{
+			DirectX::XMVECTOR d = DirectX::XMLoadFloat3(&fill.direction);
+			d = DirectX::XMVector3Normalize(d);
+			DirectX::XMStoreFloat3(&fill.direction, d);
+		}
+		fill.color = { 0.18f,0.28f,0.75f };
+		fill.intensity = 0.0f;
+		m_lightManager->setDirectionalLight(1, fill);
+
+		PointLight point{};
+		point.position = { 0.0f, 2.5f, 0.0f };
+		point.range = 80.0f;
+		point.color = { 1.0f, 0.0f, 0.0f };
+		point.intensity = 1.0f;
+		m_lightManager->setPointLight(0, point);
 
 		m_shadowMap = std::make_unique<ShadowMap>(m_MainRenderer->getDevice(), 4096, 4096);
 		if (!m_shadowMap->initialize())
 			return false;
+
+		m_pointShadowMap = std::make_unique<PointShadowMap>(device(), 1024);
+		if (!m_pointShadowMap->initialize())
+			return false;
 		createScreenQuad();
 		createShadowPass();
-
+		createPointShadowPass();
 		m_Running = true;
 		return true;
 	}
@@ -81,6 +104,10 @@ namespace AlbinoEngine
 
 		m_Scene.reset();
 
+		m_pointShadowMap.reset();
+		m_pointShadowVS.reset();
+		m_pointShadowEffect = nullptr;
+		m_pointShadowRaster.Reset();
 		m_shadowMap.reset();
 		m_shadowVS.reset();
 		m_screenVS.reset();
@@ -129,6 +156,41 @@ namespace AlbinoEngine
 				m_Running = false;
 
 		}
+	}
+
+	void Engine::createPointShadowPass()
+	{
+		m_pointShadowVS = std::make_shared<VertexShader>(device());
+		auto pointShadowPS = std::make_shared<PixelShader>(device());
+
+		m_pointShadowVS->loadVertexShader(L"media//shaders//PointShadowDepth.shader", "vs_main", "vs_5_0");
+
+		pointShadowPS->loadPixelShader(L"media//shaders//PointShadowDepth.shader", "ps_main", "ps_5_0");
+
+		if (!m_pointShadowVS->getVertexShader() || !pointShadowPS->getPixelShader())
+			return;
+
+		m_pointShadowEffect = m_effectManager->createEffect("PointShadowDepth").get();
+		auto& tech = m_pointShadowEffect->createTechnique("point_shadow_depth");
+		m_pointShadowEffect->setActiveTechnique(tech.name());
+
+		D3D11_RASTERIZER_DESC rs{};
+		rs.FillMode = D3D11_FILL_SOLID;
+		rs.CullMode = D3D11_CULL_BACK;
+		rs.DepthClipEnable = TRUE;
+		rs.DepthBias = 500;
+		rs.SlopeScaledDepthBias = 1.0f;
+		rs.DepthBiasClamp = 0.0f;
+
+		this->device()->CreateRasterizerState(&rs, m_pointShadowRaster.ReleaseAndGetAddressOf());
+
+		auto pass = std::make_unique<Pass>(m_pointShadowVS, pointShadowPS);
+		pass->name = "PointShadowDepth";
+		pass->buildInputLayout(device());
+		pass->setRasterizerState(m_pointShadowRaster.Get());
+
+
+		tech.addPass(std::move(pass));
 	}
 
 	void Engine::createShadowPass()
@@ -182,6 +244,8 @@ namespace AlbinoEngine
 			float dt = static_cast<float>(now.QuadPart - prev.QuadPart) / float(freq.QuadPart);
 			prev = now;
 
+			m_totalTime += dt;
+
 			if (m_Scene)
 				m_Scene->update(*this, dt);
 
@@ -191,7 +255,7 @@ namespace AlbinoEngine
 				static_cast<float>(m_MainWindow->getHeight()),
 				0.0f, 1.0f);
 
-			DirectionalLight sun = m_lightManager->getDirectionalLight();
+			DirectionalLight sun = m_lightManager->getDirectionalLight(0);
 
 			// Build light matrices ONCE per frame, before both passes
 			DirectX::XMMATRIX lightViewProj = DirectX::XMMatrixIdentity();
@@ -287,7 +351,10 @@ namespace AlbinoEngine
 				shadowFx.device = device();
 				shadowFx.context = context();
 				shadowFx.camera = nullptr;
-				shadowFx.directionalLight = nullptr;
+				shadowFx.directionalLights[0] = nullptr;
+				shadowFx.directionalLights[1] = nullptr;
+				shadowFx.numDirectionalLights = 0;
+				shadowFx.numPointLights = 0;
 				shadowFx.useViewProjOverride = true;
 				shadowFx.viewProjOverride = lightViewProj;
 
@@ -295,6 +362,72 @@ namespace AlbinoEngine
 				m_MeshManager->renderAllWithOverrideEffect(*m_shadowEffect, shadowFx, "ScreenQuad");
 				m_shadowMap->end(context());
 			}
+
+			// ===================================================== //
+			// Stage 0B: Point light shadow cubemap pass			 //
+			// ===================================================== //
+
+			ID3D11ShaderResourceView* nullPointShadowSRV[1] = { nullptr };
+			context()->PSSetShaderResources(2, 1, nullPointShadowSRV);
+
+			if (m_pointShadowEffect && m_pointShadowMap && m_lightManager->getNumPointLights())
+			{
+				const PointLight& point = m_lightManager->getPointLight(0);
+
+				using namespace DirectX;
+
+				XMVECTOR lightPos = XMVectorSet(point.position.x, point.position.y, point.position.z, 1.0f);
+
+				static const XMVECTORF32 targets[6] =
+				{
+					{ 1, 0, 0, 0 }, // +X
+					{-1, 0, 0, 0 }, // -X
+					{ 0, 1, 0, 0 }, // +Y
+					{ 0,-1, 0, 0 }, // -Y
+					{ 0, 0, 1, 0 }, // +Z
+					{ 0, 0,-1, 0 }, // -Z
+				};
+
+				static const XMVECTORF32 ups[6] =
+				{
+					{ 0, 1, 0, 0},
+					{ 0, 1, 0, 0},
+					{ 0, 0,-1, 0},
+					{ 0, 0, 1, 0},
+					{ 0, 1, 0, 0},
+					{ 0, 1, 0, 0}
+				};
+
+				XMMATRIX proj = XMMatrixPerspectiveFovLH(
+					XM_PIDIV2,
+					1.0f,
+					0.1f,
+					point.range);
+
+				for (UINT face = 0; face < 6; ++face)
+				{
+					XMMATRIX view = XMMatrixLookAtLH(
+						lightPos,
+						XMVectorAdd(lightPos, targets[face]), ups[face]);
+
+					EffectContext pointShadowFX{};
+					pointShadowFX.device = device();
+					pointShadowFX.context = context();
+					pointShadowFX.camera = nullptr;
+					pointShadowFX.useViewProjOverride = true;
+					pointShadowFX.viewProjOverride = view * proj;
+					pointShadowFX.usePointShadowData = true;
+					pointShadowFX.pointShadowLightPosition = point.position;
+					pointShadowFX.pointShadowLightRange = point.range;
+
+					m_pointShadowMap->beginFace(context(), face);
+					m_MeshManager->renderAllWithOverrideEffect(*this->m_pointShadowEffect, pointShadowFX, "PointShadowDepth");
+					m_pointShadowMap->endFace(context());
+
+					
+				}
+			}
+
 
 			// ===================================================== //
 			// Stage 1: Render world-space meshes to offscreen RT
@@ -308,15 +441,24 @@ namespace AlbinoEngine
 			if (m_Scene)
 			{
 				EffectContext sceneFX = m_Scene->buildEffectContext(*this);
-				sceneFX.directionalLight = &m_lightManager->getDirectionalLight();
+				sceneFX.directionalLights[0] = &m_lightManager->getDirectionalLight(0);
+				sceneFX.directionalLights[1] = &m_lightManager->getDirectionalLight(1);
+				sceneFX.numDirectionalLights = m_lightManager->getNumDirectionalLights();
+
+				sceneFX.pointLights[0] = &m_lightManager->getPointLight(0);
+				sceneFX.numPointLights = m_lightManager->getNumPointLights();
 				sceneFX.shadowMap = m_shadowMap.get();
+				sceneFX.pointShadowMap = m_pointShadowMap.get();
 				sceneFX.lightViewProjection = lightViewProj;
 
 				m_MeshManager->renderAllExceptEffect(*m_effectManager, sceneFX, "ScreenQuad");
 			}
 
 			m_renderTargetManager->endRender(m_MainRenderer->getContext());
-
+			
+//			ID3D11ShaderResourceView* nullShadowResourceView[2] = { nullptr, nullptr };
+//			context()->PSSetShaderResources(1, 2, nullPointShadowSRV);
+// 
 			// ===================================================== //
 			// Stage 2: Bind backbuffer and draw fullscreen quad only
 			// ===================================================== //
@@ -326,7 +468,10 @@ namespace AlbinoEngine
 			quadFX.device = device();
 			quadFX.context = context();
 			quadFX.camera = nullptr;
-			quadFX.directionalLight = nullptr;
+			quadFX.directionalLights[0] = nullptr;
+			quadFX.directionalLights[1] = nullptr;
+			quadFX.numDirectionalLights = 0;
+			quadFX.numPointLights = 0;
 			quadFX.shadowMap = nullptr;
 
 			m_MeshManager->renderOnlyEffect(*m_effectManager, quadFX, "ScreenQuad");
@@ -376,7 +521,24 @@ namespace AlbinoEngine
 			ds.DepthEnable = FALSE;
 			ds.DepthWriteMask = D3D11_DEPTH_WRITE_MASK_ZERO;
 			ds.DepthFunc = D3D11_COMPARISON_ALWAYS;
+			
+			// Stencil 
 			ds.StencilEnable = FALSE;
+			ds.StencilReadMask = D3D11_DEFAULT_STENCIL_READ_MASK;
+			ds.StencilWriteMask = D3D11_DEFAULT_STENCIL_WRITE_MASK;
+
+			// Stencil FrontFace.
+			ds.FrontFace.StencilFailOp = D3D11_STENCIL_OP_KEEP;
+			ds.FrontFace.StencilDepthFailOp = D3D11_STENCIL_OP_KEEP;
+			ds.FrontFace.StencilPassOp = D3D11_STENCIL_OP_KEEP;
+			ds.FrontFace.StencilFunc = D3D11_COMPARISON_ALWAYS;
+
+			// Stencil BackFace.
+			ds.BackFace.StencilFailOp = D3D11_STENCIL_OP_KEEP;
+			ds.BackFace.StencilDepthFailOp = D3D11_STENCIL_OP_KEEP;
+			ds.BackFace.StencilPassOp = D3D11_STENCIL_OP_KEEP;
+			ds.BackFace.StencilFunc = D3D11_COMPARISON_ALWAYS;
+
 			this->device()->CreateDepthStencilState(&ds, this->m_screenDepthDIsabled.ReleaseAndGetAddressOf());
 		}
 
@@ -411,6 +573,8 @@ namespace AlbinoEngine
 		}
 
 		Mesh* screenQuad = this->getMeshManager().createMesh(L"mainQuad", L"screenQuadMesh");
+		screenQuad->setCastShadows(false);
+		screenQuad->setReceiveShadows(false);
 		if (!screenQuad)
 			return;
 

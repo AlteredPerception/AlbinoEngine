@@ -16,6 +16,7 @@
 #include "PixelShader.h"
 #include "LightManager.h"
 #include "ShadowMap.h"
+#include "PointShadowMap.h"
 
 
 namespace AlbinoEngine
@@ -57,13 +58,15 @@ namespace AlbinoEngine
 
 		void createScreenQuad();
 		void createShadowPass();
-
+		void createPointShadowPass();
+		float getTotalTime() const { return m_totalTime; }
 	private:
 		void messagePump();
 
 	protected:
 		bool m_Running = false;
 
+		float m_totalTime = 0.0f;
 		std::unique_ptr<Window> m_MainWindow;
 		std::unique_ptr<D3D11Renderer> m_MainRenderer;
 
@@ -87,5 +90,12 @@ namespace AlbinoEngine
 		// Shadow pass
 		std::shared_ptr<VertexShader> m_shadowVS;
 		Effect* m_shadowEffect = nullptr;
+
+		// PointShadowMap
+		std::unique_ptr<PointShadowMap> m_pointShadowMap;
+		std::shared_ptr<VertexShader> m_pointShadowVS;
+		Effect* m_pointShadowEffect = nullptr;
+		Microsoft::WRL::ComPtr<ID3D11RasterizerState> m_pointShadowRaster;
+
 	};
 }

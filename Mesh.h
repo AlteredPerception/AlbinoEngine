@@ -73,11 +73,20 @@ namespace AlbinoEngine
 
 		void setCastShadows(bool cast) { m_castShadows = cast; }
 
-		bool getCastShadows() const { return this->m_castShadows; }
+		bool isCastingShadows() const { return this->m_castShadows; }
+
+		void serVisible(bool visible) { m_visible = visible; }
+
+		bool isVisible() const { return m_visible; }
+
+		void setReceiveShadows(bool recieve) { m_recieveShadows = recieve; }
+
+		bool isReceiverOfShadows() const { return m_recieveShadows; }
 
 	protected:
-
+		bool m_recieveShadows = true;
 		bool m_castShadows = true;
+		bool m_visible = true;
 		std::vector<std::unique_ptr<Pass>> passes;
 		DirectX::XMFLOAT3 m_pPosition;
 		DirectX::XMFLOAT3 m_pScale;

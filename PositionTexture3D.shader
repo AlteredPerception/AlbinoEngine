@@ -1,17 +1,40 @@
+#include "LightingCommon.hlsli"
+#include "ShadowCommon.hlsli"
+
+
 cbuffer WorldViewProjection : register(b0)
 {
     float4x4 world;
     float4x4 worldInvTranspose;
     float4x4 worldViewProjection;
+
+    float receiveShadows;
+    float3 _pad_object;
+};
+
+struct DirectionalLightData
+{
+   float3 direction;
+   float _pad0;
+
+   float3 color;
+   float intensity;
+};
+
+struct PointLightData
+{
+   float3 position;
+   float range;
+   
+   float3 color; 
+   float intensity;
 };
 
 cbuffer FrameLighting : register(b1)
 {
-   float3 lightDirection;
-   float _pad0;
-
-   float3 lightColor;
-   float lightIntensity;
+   
+   DirectionalLightData directionalLights[2];
+   PointLightData pointLights[4];
 
    float3 cameraPosition;
    float ambientStrength;
@@ -22,7 +45,9 @@ cbuffer FrameLighting : register(b1)
    float4x4 lightViewProjection;
 
    float shadowBias;
-   float3 _pad1;
+   uint numDirectionalLights;
+   uint numPointLights;
+   float _pad1;
 };
 
 struct VS_INPUT
@@ -66,105 +91,138 @@ SamplerState diffuseSampler : register(s0);
 
 Texture2D shadowMap : register(t1);
 
-float hash12(float2 p)
+TextureCube pointShadowMap : register(t2);
+SamplerState pointShadowSampler : register(s2);
+
+float ComputePointLightAttenuation(float distanceToLight, float range)
 {
-    float h = dot(p, float2(127.1, 311.7));
-    return frac(sin(h) * 43758.5453123);
-}
-
-float2 rotate2(float2 v, float angle)
-{
-    float s = sin(angle);
-    float c = cos(angle);
-    return float2(
-        c * v.x - s * v.y,
-        s * v.x + c * v.y
-    );
-}
-
-float computeShadow(float4 shadowPos)
-{
-    if (abs(shadowPos.w) < 0.0001f)
-        return 1.0f;
-
-    float3 proj = shadowPos.xyz / shadowPos.w;
-
-    // NDC [-1, 1] -> UV [0, 1]
-    float2 uv = proj.xy * 0.5f + 0.5f;
-    uv.y = 1.0f - uv.y;
-
-    float depth = proj.z;
-
-    // Outside shadow map = lit
-    if (uv.x < 0.0f || uv.x > 1.0f || uv.y < 0.0f || uv.y > 1.0f || depth < 0.0f || depth > 1.0f)
-        return 1.0f;
-
-    uint w, h;
-    shadowMap.GetDimensions(w, h);
-
-    float2 texelSize = 1.0f / float2(w, h);
-    float currentDepth = depth - shadowBias;
-
-    // Small per-pixel rotation to reduce visible grid pattern
-    float angle = hash12(floor(uv * float2(w, h))) * 6.2831853f;
-
-    float shadow = 0.0f;
-
-    [unroll]
-    for (int y = -2; y <= 2; ++y)
-    {
-        [unroll]
-        for (int x = -2; x <= 2; ++x)
-        {
-            float2 baseOffset = float2((float)x, (float)y);
-            float2 rotatedOffset = rotate2(baseOffset, angle) * texelSize;
-
-            float2 sampleUV = uv + rotatedOffset;
-
-            if (sampleUV.x < 0.0f || sampleUV.x > 1.0f || sampleUV.y < 0.0f || sampleUV.y > 1.0f)
-            {
-                shadow += 1.0f;
-                continue;
-            }
-
-            int2 texel = int2(sampleUV * float2(w, h));
-            texel = clamp(texel, int2(0, 0), int2((int)w - 1, (int)h - 1));
-
-            float shadowDepth = shadowMap.Load(int3(texel, 0)).r;
-            shadow += (currentDepth <= shadowDepth) ? 1.0f : 0.0f;
-        }
-    }
-
-    return shadow / 25.0f;
+    float att = saturate(1.0f - (distanceToLight / range));
+    return att * att;
 }
 
 float4 ps_main(VS_OUTPUT input) : SV_TARGET
 {
-   float4 albedo = diffuseTex.Sample(diffuseSampler, input.uv);
+    float4 albedo = diffuseTex.Sample(diffuseSampler, input.uv);
+
+    float3 N = normalize(input.worldNormal);
+    float3 V = normalize(cameraPosition - input.worldPos);
+
+    float shadow = ComputeShadowPCF5x5(shadowMap, input.shadowPos, shadowBias);
+
+    float3 ambient = ComputeAmbient(albedo.rgb, ambientStrength);
+    float3 directLighting = float3(0.0f, 0.0f, 0.0f);
+
+    
+    [unroll]
+    for (uint i = 0; i < 2; ++i)
+    {
+        if (i >= numDirectionalLights)
+            break;
+
+        float3 L = normalize(-directionalLights[i].direction);
+
+        float3 diffuse = ComputeDiffuse(
+            albedo.rgb,
+            N,
+            L,
+            directionalLights[i].color,
+            directionalLights[i].intensity);
+
+        float3 specular = ComputeSpecular(
+            N,
+            L,
+            V,
+            specularColor,
+            directionalLights[i].color,
+            directionalLights[i].intensity,
+            shininess);
+
+        float lightShadow = (i == 0) ? shadow : 1.0f;
+        directLighting += (diffuse + specular) * lightShadow;
+    }
+
+    if(receiveShadows < 0.5f)
+    {
+	shadow = 1.0f;
+    }
+
+    float pointShadow = 1.0f;
+    [unroll]
+    for(uint j = 0; j < 4; ++j)
+    {
+       if(j >= numPointLights)
+	  break;
+
+       float3 toLight = pointLights[j].position - input.worldPos;
+       float dist = length(toLight);
+        
+       if(dist >= pointLights[j].range)
+	  continue;
+       
+       float3 L = toLight / max(dist, 0.0001f);
+       float attenuation = ComputePointLightAttenuation(dist, pointLights[j].range);
+
+       
+       
+       if(j == 0)
+       {
+	   pointShadow = ComputePointShadow(
+		pointShadowMap,
+		pointShadowSampler,
+		input.worldPos,
+		pointLights[j].position,
+		pointLights[j].range,
+		shadowBias * 4.0f);
+
+	    if(receiveShadows < 0.5f)
+	    {
+		pointShadow = 1.0f;
+	    }
+       }
+
+       float3 diffuse = ComputeDiffuse(
+		albedo.rgb,
+                N,
+		L,
+		pointLights[j].color,
+		pointLights[j].intensity * attenuation);
+	
+	float3 specular = ComputeSpecular(
+	   N, 
+	   L, 
+	   V, 
+	   specularColor, 
+           pointLights[j].color, 
+           pointLights[j].intensity * attenuation, 
+	   shininess); 
+
+	directLighting += (diffuse + specular) * pointShadow;
+    }
+    float3 finalColor = ambient + directLighting;
+    //return float4(pointShadow, pointShadow, pointShadow, 1.0f);
+    return float4(saturate(finalColor), albedo.a);
+}
+
+float4 ps_main_2(VS_OUTPUT input) : SV_TARGET
+{
+   float3 toFragment = input.worldPos - pointLights[0].position;
+   float currentDist = length(toFragment);
+   float3 sampleDir = normalize(toFragment);
    
-   float3 N = normalize(input.worldNormal);
-   float3 L = normalize(-lightDirection);
-   float3 V = normalize(cameraPosition - input.worldPos);
-   float3 H = normalize(L + V);
+   float storedDepth = pointShadowMap.Sample(pointShadowSampler, sampleDir).r;
+   float currentDepth = saturate((currentDist - shadowBias * 2.0) / pointLights[0].range);
 
-   float NdotL = saturate(dot(N,L));
-   float NdotH = saturate(dot(N,H));
+   return float4(currentDepth, storedDepth, abs(currentDepth - storedDepth) * 10.0f, 1.0f);
+}
 
-   float shadow = computeShadow(input.shadowPos);
-
-   float shadowStrength = 0.85f;
-   shadow = lerp(1.0f, shadow, shadowStrength);
-
-   float3 ambient = albedo.rgb * ambientStrength;
-   float3 diffuse = albedo.rgb * lightColor * NdotL * lightIntensity;
-   float spec = pow(NdotH, shininess);
-
-   float3 specular = specularColor * spec * lightColor * lightIntensity;
-
-   float3 finalColor = ambient + (diffuse + specular) * shadow;
-
-   return float4(saturate(finalColor), albedo.a);
-   //return float4(shadow, shadow, shadow, 1.0f);
+float4 ps_main_e(VS_OUTPUT input) : SV_TARGET
+{
+   float3 toFragment = input.worldPos - pointLights[0].position;
+   float3 sampleDir = normalize(toFragment);
+   
+   float storedDepth = pointShadowMap.Sample(pointShadowSampler, sampleDir).r;
+   //return float4(1.0f, 0.0f, 1.0f, 1.0f);
+   return float4(storedDepth, storedDepth, storedDepth, 1.0f);
 }
 
 float4 ps_main_uv(VS_OUTPUT input) : SV_TARGET

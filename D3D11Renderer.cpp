@@ -99,6 +99,8 @@ namespace AlbinoEngine
 
 			m_pDevContext->ClearState();
 			m_pDevContext->Flush();
+			m_pDevContext->ClearState();
+			m_pDevContext->Flush();
 		}
 
 		m_pRenderTargetView.Reset();
